@@ -4,8 +4,6 @@ option( PLUGIN_STANDARD_QTREEISO "Install qTreeIso plugin" OFF )
 
 if( PLUGIN_STANDARD_QTREEISO )
 	project( QTREEISO_PLUGIN )
-
-	AddPlugin( NAME ${PROJECT_NAME} )
 	
 	find_package(Boost 1.67 REQUIRED COMPONENTS graph)
 	find_package(Eigen3 REQUIRED)	
