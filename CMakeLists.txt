@@ -3,20 +3,12 @@ cmake_minimum_required( VERSION 3.10 )
 option( PLUGIN_STANDARD_QTREEISO "Install qTreeIso plugin" OFF )
 
 if( PLUGIN_STANDARD_QTREEISO )
+	
 	project( QTREEISO_PLUGIN )
 	
 	AddPlugin( NAME ${PROJECT_NAME} )	
 
-	
 	find_package(Boost 1.67 REQUIRED COMPONENTS graph)
-	find_package(Eigen3 QUIET)
-	
-	
-	
-	add_subdirectory( include )
-	add_subdirectory( src )
-	add_subdirectory( ui )
-
 	if(NOT Boost_FOUND)
 		set( BOOST_ROOT_DIR "" CACHE PATH "Boost root (contains the Boost directory)" )
 		if ( NOT BOOST_ROOT_DIR )
@@ -26,8 +18,10 @@ if( PLUGIN_STANDARD_QTREEISO )
 	else()
 		target_link_libraries(${PROJECT_NAME} Boost::graph)
 	endif()
+
+	target_compile_definitions( ${PROJECT_NAME} PRIVATE BOOST_ALLOW_DEPRECATED_HEADERS )
 	
-	
+	find_package(Eigen3 QUIET)
 	if(NOT Eigen3_FOUND)
 		set( EIGEN_ROOT_DIR "" CACHE PATH "Eigen root (contains the Eigen directory)" )
 		if ( NOT EIGEN_ROOT_DIR )
@@ -38,9 +32,8 @@ if( PLUGIN_STANDARD_QTREEISO )
 		target_link_libraries(${PROJECT_NAME} Eigen3::Eigen)
 	endif()
 
-
-
-
-
+	add_subdirectory( include )
+	add_subdirectory( src )
+	add_subdirectory( ui )
 
 endif()

@@ -1,3 +1,5 @@
+#pragma once
+
 //#######################################################################################
 //#                                                                                     #
 //#                              CLOUDCOMPARE PLUGIN: qTreeIso                          #
@@ -32,18 +34,15 @@
 //#                                                                                     #
 //#######################################################################################
 
-#pragma once
 // A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
-#ifndef QTreeIso_PLUGIN_COMMANDS_HEADER
-#define QTreeIso_PLUGIN_COMMANDS_HEADER
-
 //CloudCompare
-#include "ccCommandLineInterface.h"
+#include <ccCommandLineInterface.h>
 
 //Local
 #include "ccTreeIsoDlg.h"
+#include "qTreeIso.h"
 #include "TreeIso.h"
 
 static const char COMMAND_TREEISO[] = "TREEISO";
@@ -51,7 +50,6 @@ static const char COMMAND_TREEISO[] = "TREEISO";
 static const char COMMAND_LAMBDA1[] = "LAMBDA1";
 static const char COMMAND_K1[] = "K1";
 static const char COMMAND_DECIMATE_RESOLUTION1[] = "DECIMATE_RESOLUTION1";
-
 
 static const char COMMAND_LAMBDA2[] = "LAMBDA2";
 static const char COMMAND_K2[] = "K2";
@@ -61,37 +59,25 @@ static const char COMMAND_DECIMATE_RESOLUTION2[] = "DECIMATE_RESOLUTION2";
 static const char COMMAND_RHO[] = "RHO";
 static const char COMMAND_VERTICAL_OVERLAP_WEIGHT[] = "VERTICAL_OVERLAP_WEIGHT";
 
-
-
+//! qTreeIso command line processor
 struct CommandTreeIso : public ccCommandLineInterface::Command
 {
 	CommandTreeIso() : ccCommandLineInterface::Command("TREEISO", COMMAND_TREEISO) {}
 
-	virtual bool process(ccCommandLineInterface& cmd) override
+	bool process(ccCommandLineInterface& cmd) override
 	{
 		cmd.print("[TreeIso]");
 
-		if (cmd.clouds().empty()) 
+		if (cmd.clouds().empty())
 		{
 			cmd.error("No cloud loaded");
 			return false;
 		}
 
 		//initial parameters
-		float reg_strength1 = 1.0; //lambda1
-		int min_nn1 = 5; //K1:key parameter
-		float decimate_res1 = 0.05;
+		qTreeIso::Parameters parameters;
 
-		int reg_strength2 = 20; //lambda2:key parameter
-		int min_nn2 = 20; //K2:key parameter
-		float decimate_res2 = 0.1;
-		float max_gap = 2.0;
-
-		float rel_height_length_ratio = 0.5; //rho
-		float vertical_weight = 0.5; //w:key parameter
-
-
-		bool try_init_seg=false;
+		bool try_init_seg = false;
 		bool try_intermediate_seg = false;
 		bool try_final_seg = false;
 
@@ -104,114 +90,118 @@ struct CommandTreeIso : public ccCommandLineInterface::Command
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				reg_strength1 = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (reg_strength1 <=0.0))
+				parameters.reg_strength1 = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.reg_strength1 <= 0.0))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_LAMBDA1));
 				}
-				cmd.print(QString("lambda1 (Regularization strength for initial segmentation) set: %1").arg(reg_strength1));
+				cmd.print(QString("lambda1 (Regularization strength for initial segmentation) set: %1").arg(parameters.reg_strength1));
 			}
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_K1)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_K1))
+			{
 				try_init_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				min_nn1 = cmd.arguments().takeFirst().toInt(&convert);
-				if ((!convert) & (min_nn1<3))
+				parameters.min_nn1 = cmd.arguments().takeFirst().toInt(&convert);
+				if ((!convert) & (parameters.min_nn1 < 3))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_K1));
 				}
-				cmd.print(QString("K1 (Nearest neighbors to search for initial segmentation) set: %1").arg(min_nn1));
+				cmd.print(QString("K1 (Nearest neighbors to search for initial segmentation) set: %1").arg(parameters.min_nn1));
 			}
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_DECIMATE_RESOLUTION1)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_DECIMATE_RESOLUTION1))
+			{
 				try_init_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				decimate_res1 = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (decimate_res1 < 0.001))
+				parameters.decimate_res1 = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.decimate_res1 < 0.001))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_DECIMATE_RESOLUTION1));
 				}
-				cmd.print(QString("Decimated resolution (in m) for initial segmentation set: %1").arg(decimate_res1));
+				cmd.print(QString("Decimated resolution (in m) for initial segmentation set: %1").arg(parameters.decimate_res1));
 			}
-
-
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_LAMBDA2)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_LAMBDA2))
+			{
 				try_intermediate_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				reg_strength2 = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (reg_strength2 <= 0.0))
+				parameters.reg_strength2 = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.reg_strength2 <= 0.0))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_LAMBDA2));
 				}
-				cmd.print(QString("lambda2 (Regularization strength for intermediate segmentation) set: %1").arg(reg_strength2));
+				cmd.print(QString("lambda2 (Regularization strength for intermediate segmentation) set: %1").arg(parameters.reg_strength2));
 			}
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_K2)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_K2))
+			{
 				try_intermediate_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				min_nn2 = cmd.arguments().takeFirst().toInt(&convert);
-				if ((!convert) & (min_nn2 < 3))
+				parameters.min_nn2 = cmd.arguments().takeFirst().toInt(&convert);
+				if ((!convert) & (parameters.min_nn2 < 3))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_K2));
 				}
-				cmd.print(QString("K2 (Nearest neighbors to search for intermediate segmentation) set: %1").arg(min_nn2));
+				cmd.print(QString("K2 (Nearest neighbors to search for intermediate segmentation) set: %1").arg(parameters.min_nn2));
 			}
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_MAX_GAP)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_MAX_GAP))
+			{
 				try_intermediate_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				max_gap = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (max_gap <= 0.0001))
+				parameters.max_gap = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.max_gap <= 0.0001))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_MAX_GAP));
 				}
-				cmd.print(QString("Maximum point gap (in m) for intermediate segmentation set: %1").arg(max_gap));
+				cmd.print(QString("Maximum point gap (in m) for intermediate segmentation set: %1").arg(parameters.max_gap));
 			}
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_DECIMATE_RESOLUTION2)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_DECIMATE_RESOLUTION2))
+			{
 				try_intermediate_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				decimate_res2 = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (decimate_res2 < 0.001))
+				parameters.decimate_res2 = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.decimate_res2 < 0.001))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_DECIMATE_RESOLUTION2));
 				}
-				cmd.print(QString("Decimated resolution (in m) for intermediate segmentation set: %1").arg(decimate_res2));
+				cmd.print(QString("Decimated resolution (in m) for intermediate segmentation set: %1").arg(parameters.decimate_res2));
 			}
-
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_RHO)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_RHO))
+			{
 				try_final_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				rel_height_length_ratio = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (rel_height_length_ratio < 0.001))
+				parameters.rel_height_length_ratio = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.rel_height_length_ratio < 0.001))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_RHO));
 				}
-				cmd.print(QString("Relative height to length ratio (used to detect non-stems for final segmentation) set: %1").arg(rel_height_length_ratio));
+				cmd.print(QString("Relative height to length ratio (used to detect non-stems for final segmentation) set: %1").arg(parameters.rel_height_length_ratio));
 
 			}
-			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_VERTICAL_OVERLAP_WEIGHT)) {
+			else if (ccCommandLineInterface::IsCommand(ARGUMENT, COMMAND_VERTICAL_OVERLAP_WEIGHT))
+			{
 				try_final_seg = true;
 				cmd.arguments().pop_front();
 				bool convert = false;
 
-				vertical_weight = cmd.arguments().takeFirst().toFloat(&convert);
-				if ((!convert) & (vertical_weight < 0.001))
+				parameters.vertical_weight = cmd.arguments().takeFirst().toFloat(&convert);
+				if ((!convert) & (parameters.vertical_weight < 0.001))
 				{
 					return cmd.error(QObject::tr("Invalid parameter: value after \"-%1\"").arg(COMMAND_VERTICAL_OVERLAP_WEIGHT));
 				}
-				cmd.print(QString("Vertical overlapping ratio weight for final segmentation set: %1").arg(vertical_weight));
+				cmd.print(QString("Vertical overlapping ratio weight for final segmentation set: %1").arg(parameters.vertical_weight));
 			}
-
 			else
 			{
 				cmd.print("Parameters All Set");
@@ -219,37 +209,33 @@ struct CommandTreeIso : public ccCommandLineInterface::Command
 			}
 		}
 
-		TreeIso* m_treeiso = new TreeIso();
-
 		for (CLCloudDesc& desc : cmd.clouds())
 		{
-			ccPointCloud* pc = desc.pc;
-
 			//Convert CC point cloud to treeIso type
-			unsigned count = pc->size();
+			unsigned count = desc.pc->size();
 			if (count == 0)
 			{
-				cmd.print(QString("Cloud %1 is empty").arg(pc->getName()));
+				cmd.print(QString("Cloud %1 is empty").arg(desc.pc->getName()));
 				continue;
 			}
 
 			if (try_init_seg)
 			{
-				if (!m_treeiso->init_seg_pcd(pc, min_nn1, reg_strength1, decimate_res1))
+				if (!TreeIso::Init_seg_pcd(desc.pc, parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1))
 				{
 					return cmd.error("Failed to finish initial segmentation due to unknown reasons.");
 				}
 			}
 			if (try_intermediate_seg)
 			{
-				if (!m_treeiso->intermediate_seg_pcd(pc, min_nn2, reg_strength2, decimate_res2,max_gap))
+				if (!TreeIso::Intermediate_seg_pcd(desc.pc, parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap))
 				{
 					return cmd.error("Failed to finish intermediate segmentation due to unknown reasons.");
 				}
 			}
 			if (try_final_seg)
 			{
-				if (!m_treeiso->final_seg_pcd(pc, min_nn2, rel_height_length_ratio, vertical_weight))
+				if (!TreeIso::Final_seg_pcd(desc.pc, parameters.min_nn2, parameters.rel_height_length_ratio, parameters.vertical_weight))
 				{
 					return cmd.error("Failed to finish final segmentation due to unknown reasons.");
 				}
@@ -260,4 +246,3 @@ struct CommandTreeIso : public ccCommandLineInterface::Command
 	}
 };
 
-#endif //QTREEISO_PLUGIN_COMMANDS_HEADER

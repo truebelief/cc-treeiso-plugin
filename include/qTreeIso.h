@@ -1,4 +1,6 @@
-﻿//#######################################################################################
+﻿#pragma once
+
+//#######################################################################################
 //#                                                                                     #
 //#                              CLOUDCOMPARE PLUGIN: qTreeIso                          #
 //#                                                                                     #
@@ -32,23 +34,14 @@
 //#                                                                                     #
 //#######################################################################################
 
-
-#pragma once
-
 // A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
-#ifndef Q_TREEISO_PLUGIN_HEADER
-#define Q_TREEISO_PLUGIN_HEADER
-
 #include "ccStdPluginInterface.h"
 
-//TreeIso
-#include <TreeIso.h>
-//Dialog
-#include "ccTreeIsoDlg.h"
+class ccTreeIsoDlg;
 
-
+//! TreeIso plugin
 class qTreeIso : public QObject, public ccStdPluginInterface
 {
 	Q_OBJECT
@@ -60,53 +53,41 @@ public:
 
 	//! Default constructor
 	explicit qTreeIso(QObject* parent = nullptr);
-
+	//! Destructor
 	virtual ~qTreeIso() = default;
 
 	//inherited from ccStdPluginInterface
-	virtual void onNewSelection(const ccHObject::Container& selectedEntities) override;
-	virtual QList<QAction *> getActions() override;
-	virtual void registerCommands(ccCommandLineInterface* cmd) override;
-	void init_segs();
-	void intermediate_segs();
-	void final_segs();
-	//ccPointCloud* m_pc;
+	void onNewSelection(const ccHObject::Container& selectedEntities) override;
+	QList<QAction *> getActions() override;
+	void registerCommands(ccCommandLineInterface* cmd) override;
+
+	//! Parameters
+	struct Parameters
+	{
+		float reg_strength1 = 1.0f; //lambda1
+		int min_nn1 = 5; //K1:key parameter
+		float decimate_res1 = 0.05f;
+
+		int reg_strength2 = 20; //lambda2:key parameter
+		int min_nn2 = 20; //K2:key parameter
+		float decimate_res2 = 0.1f;
+		float max_gap = 2.0f;
+
+		float rel_height_length_ratio = 0.5f; //rho
+		float vertical_weight = 0.5; //w:key parameter
+	};
 
 protected:
 
 	//! Slot called when associated ation is triggered
 	void doAction();
-	bool init();
 
-	TreeIso* m_treeiso;
-	QProgressDialog* m_progress_dlg;
-	ccTreeIsoDlg* m_treeiso_dlg;
+	void init_segs(const Parameters& parameters);
+	void intermediate_segs(const Parameters& parameters);
+	void final_segs(const Parameters& parameters);
 
+protected: // members
 
 	//! Associated action
 	QAction* m_action;
-	bool m_has_initialized =false;
-
-	struct Parameters
-	{
-		float reg_strength1 = 1.0; //lambda1
-		int min_nn1 = 5; //K1:key parameter
-		int reg_strength2 = 20; //lambda2:key parameter
-		int min_nn2 = 20; //K2:key parameter
-		float edge_strength2 = 1;
-
-		float rel_height_length_ratio = 0.5; //rho
-		float vertical_weight = 0.5; //w:key parameter
-
-		float decimate_res1 = 0.05;
-		float decimate_res2 = 0.1;
-
-		float max_gap = 2.0;
-
-		std::string fname;
-	};
-
-	Parameters m_treeiso_parameters;
 };
-
-#endif

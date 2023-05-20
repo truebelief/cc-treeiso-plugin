@@ -1,11 +1,20 @@
 
 target_sources( ${PROJECT_NAME}
 	PRIVATE
+		${CMAKE_CURRENT_LIST_DIR}/API.h
 		${CMAKE_CURRENT_LIST_DIR}/ccTreeIsoDlg.h
-		${CMAKE_CURRENT_LIST_DIR}/TreeIso.h
-		${CMAKE_CURRENT_LIST_DIR}/TreeIsoHelper.h
+		${CMAKE_CURRENT_LIST_DIR}/Common.h
+		${CMAKE_CURRENT_LIST_DIR}/CutPursuit.h
+		${CMAKE_CURRENT_LIST_DIR}/CutPursuit_KL.h
+		${CMAKE_CURRENT_LIST_DIR}/CutPursuit_L2.h
+		${CMAKE_CURRENT_LIST_DIR}/CutPursuit_Linear.h
+		${CMAKE_CURRENT_LIST_DIR}/CutPursuit_SPG.h
+		${CMAKE_CURRENT_LIST_DIR}/Graph.h
+		${CMAKE_CURRENT_LIST_DIR}/knncpp.h
 		${CMAKE_CURRENT_LIST_DIR}/qTreeIso.h
 		${CMAKE_CURRENT_LIST_DIR}/qTreeIsoCommands.h		
+		${CMAKE_CURRENT_LIST_DIR}/TreeIso.h
+		${CMAKE_CURRENT_LIST_DIR}/TreeIsoHelper.h
 )
 
 target_include_directories( ${PROJECT_NAME}
