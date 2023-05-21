@@ -1,4 +1,6 @@
-﻿//#######################################################################################
+﻿#pragma once
+
+//#######################################################################################
 //#                                                                                     #
 //#                              CLOUDCOMPARE PLUGIN: qTreeIso                          #
 //#                                                                                     #
@@ -32,53 +34,22 @@
 //#                                                                                     #
 //#######################################################################################
 
-
-#pragma once
 // A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
-//system
-#include <vector>
-#include <string>
-#include <QProgressDialog>
-
-
 class ccMainAppInterface;
 class ccPointCloud;
-class QWidget;
-class ccMesh;
-
+class QProgressDialog;
 
 class TreeIso
 {
 public:
 
-	//! Parameters
-	TreeIso();
+	static bool Init_seg(const unsigned min_nn1, const float regStrength1, const float PR_DECIMATE_RES1, ccMainAppInterface* app, QProgressDialog* progressDlg);
+	static bool Intermediate_seg(const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, ccMainAppInterface* app, QProgressDialog* progressDlg);
+	static bool Final_seg(const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, ccMainAppInterface* app, QProgressDialog* progressDlg);
 
-	void setProgressDialog(QProgressDialog* qProgress);
-
-	virtual ~TreeIso() = default;
-	bool LoadPcd(ccMainAppInterface* app/*=nullptr*/);
-	bool init_seg(const unsigned min_nn1, const float regStrength1, const float PR_DECIMATE_RES1, ccMainAppInterface* app/*=nullptr*/, QWidget* parent/*=nullptr*/);
-	bool intermediate_seg(const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, ccMainAppInterface* app/*=nullptr*/, QWidget* parent/*=nullptr*/);
-	bool final_seg(const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, ccMainAppInterface* app/*=nullptr*/, QWidget* parent/*=nullptr*/);
-
-	bool init_seg_pcd(ccPointCloud* pc, const unsigned min_nn1, const float regStrength1, const float PR_DECIMATE_RES1);
-	bool intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP);
-	bool final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT);
-
-
-	template <
-		class result_t = std::chrono::milliseconds,
-		class clock_t = std::chrono::steady_clock,
-		class duration_t = std::chrono::milliseconds
-	>
-		auto since(std::chrono::time_point<clock_t, duration_t> const& start)
-	{
-		return std::chrono::duration_cast<result_t>(clock_t::now() - start);
-	}
-
-private:
-	QProgressDialog* m_progress;
+	static bool Init_seg_pcd(ccPointCloud* pc, const unsigned min_nn1, const float regStrength1, const float PR_DECIMATE_RES1, QProgressDialog* progressDlg = nullptr);
+	static bool Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, QProgressDialog* progressDlg = nullptr);
+	static bool Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, QProgressDialog* progressDlg = nullptr);
 };

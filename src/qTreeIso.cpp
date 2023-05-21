@@ -1,4 +1,6 @@
-﻿//#######################################################################################
+﻿#pragma once
+
+//#######################################################################################
 //#                                                                                     #
 //#                              CLOUDCOMPARE PLUGIN: qTreeIso                          #
 //#                                                                                     #
@@ -32,8 +34,6 @@
 //#                                                                                     #
 //#######################################################################################
 
-
-#pragma once
 // A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
@@ -45,8 +45,10 @@
 #include <QMainWindow>
 #include <QComboBox>
 #include <QElapsedTimer>
+#include <QMessageBox>
 
 //Local
+#include "ccTreeIsoDlg.h"
 #include "qTreeIsoCommands.h"
 
 //System
@@ -62,9 +64,8 @@
 #include <ccOctree.h>
 #include <ccMesh.h>
 
-
-#include <QMessageBox>
-
+//TreeIso
+#include <TreeIso.h>
 
 qTreeIso::qTreeIso(QObject* parent)
 	: QObject(parent)
@@ -88,14 +89,13 @@ void qTreeIso::onNewSelection(const ccHObject::Container& selectedEntities)
 		}
 		m_action->setEnabled(hasCloud);
 	}
-	//m_action->setEnabled(true);
 }
 
 QList<QAction *> qTreeIso::getActions()
 {
 	if (!m_action)
 	{
-		m_action = new QAction(getName(),this);
+		m_action = new QAction(getName(), this);
 		m_action->setToolTip(getDescription());
 		m_action->setIcon(getIcon());
 
@@ -106,129 +106,128 @@ QList<QAction *> qTreeIso::getActions()
 	return { m_action };
 }
 
-bool qTreeIso::init() {	
-	m_treeiso=new TreeIso();
-
-	m_treeiso_dlg=new ccTreeIsoDlg(m_app->getMainWindow());
-	connect(m_treeiso_dlg->pushButtonInitSeg, &QPushButton::clicked, this, &qTreeIso::init_segs);
-	connect(m_treeiso_dlg->pushButtonInterSeg, &QPushButton::clicked, this, &qTreeIso::intermediate_segs);
-	connect(m_treeiso_dlg->pushButtonReseg, &QPushButton::clicked, this, &qTreeIso::final_segs);
-	m_treeiso_dlg->pushButtonInitSeg->setEnabled(true);
-	return true;
-}
-
-
 void qTreeIso::doAction()
 {
-	// m_app should have already been initialized by CC when plugin is loaded!
-	if (!m_app)
+	Parameters parameters;
+	ccTreeIsoDlg treeisoDlg(m_app->getMainWindow());
+
+	connect(treeisoDlg.pushButtonInitSeg, &QPushButton::clicked, [&]
+		{
+			parameters.min_nn1 = treeisoDlg.spinBoxK1->value();
+			parameters.reg_strength1 = treeisoDlg.doubleSpinBoxLambda1->value();;
+			parameters.decimate_res1 = treeisoDlg.doubleSpinBoxDecRes1->value();
+
+			init_segs(parameters);
+		});
+
+	connect(treeisoDlg.pushButtonInterSeg, &QPushButton::clicked, [&]
+		{
+			parameters.min_nn2 = treeisoDlg.spinBoxK2->value();
+			parameters.reg_strength2 = treeisoDlg.doubleSpinBoxLambda2->value();
+			parameters.decimate_res2 = treeisoDlg.doubleSpinBoxDecRes2->value();
+			parameters.max_gap = treeisoDlg.doubleSpinBoxMaxGap->value();
+
+			intermediate_segs(parameters);
+
+		});
+
+	connect(treeisoDlg.pushButtonReseg, &QPushButton::clicked, [&]
+		{
+			parameters.rel_height_length_ratio = treeisoDlg.doubleSpinBoxRelHLRatio->value();
+			parameters.vertical_weight = treeisoDlg.doubleSpinBoxVWeight->value();
+
+			final_segs(parameters);
+		});
+	treeisoDlg.pushButtonInitSeg->setEnabled(true);
+
+	if (treeisoDlg.exec())
 	{
-		assert(false);
-		return;
+		if (m_app)
+		{
+			m_app->refreshAll();
+		}
+		else
+		{
+			// m_app should have already been initialized by CC when plugin is loaded!
+			assert(false);
+		}
 	}
-	if (!init()) {
-		return;
-	}
-	if (!m_treeiso_dlg->exec())
-	{
-		return;
-	}
-	m_app->refreshAll();
 }
 
 
-void qTreeIso::init_segs()
+void qTreeIso::init_segs(const Parameters& parameters)
 {
-	m_progress_dlg = new QProgressDialog(m_app->getMainWindow());
+	// display the progress dialog
+	QProgressDialog* progressDlg = new QProgressDialog(m_app->getMainWindow());
+	progressDlg->setWindowTitle("TreeIso Step 1. Initial segmention");
+	progressDlg->setLabelText(tr("Computing...."));
+	progressDlg->setCancelButton(nullptr);
+	progressDlg->setRange(0, 0); // infinite progress bar
+	progressDlg->show();
 
-	m_treeiso->setProgressDialog(m_progress_dlg);
-	m_progress_dlg->setWindowTitle("TreeIso Step 1. Initial segmention");
-	m_progress_dlg->setLabelText(tr("Computing...."));
-	m_progress_dlg->setCancelButton(nullptr);
-	m_progress_dlg->setRange(0, 0); // infinite progress bar
-	m_progress_dlg->show();
-
-	m_treeiso_parameters.min_nn1 = m_treeiso_dlg->spinBoxK1->value();
-	m_treeiso_parameters.reg_strength1 = m_treeiso_dlg->doubleSpinBoxLambda1->value();;
-	m_treeiso_parameters.decimate_res1 = m_treeiso_dlg->doubleSpinBoxDecRes1->value();
-
-	if (!m_treeiso->init_seg(m_treeiso_parameters.min_nn1, m_treeiso_parameters.reg_strength1, m_treeiso_parameters.decimate_res1, m_app, nullptr))
+	if (!TreeIso::Init_seg(parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, m_app, progressDlg))
 	{
 		m_app->dispToConsole("Not enough memory", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
 		return;
 	}
 
-	m_progress_dlg->hide();
-
+	progressDlg->close();
 	QApplication::processEvents();
+
 	m_app->updateUI();
 	m_app->refreshAll();
-
 }
 
-
-
-void qTreeIso::intermediate_segs()
+void qTreeIso::intermediate_segs(const Parameters& parameters)
 {
-
-	m_progress_dlg = new QProgressDialog(m_app->getMainWindow());
-	m_treeiso->setProgressDialog(m_progress_dlg);
 	// display the progress dialog
-	m_progress_dlg->setWindowTitle("TreeIso Step 2. Interim segmention");
-	m_progress_dlg->setLabelText(tr("Computing...."));
-	m_progress_dlg->setCancelButton(nullptr);
-	m_progress_dlg->setRange(0, 0); // infinite progress bar
-	m_progress_dlg->show();
+	QProgressDialog* progressDlg = new QProgressDialog(m_app->getMainWindow());
+	progressDlg->setWindowTitle("TreeIso Step 2. Interim segmention");
+	progressDlg->setLabelText(tr("Computing...."));
+	progressDlg->setCancelButton(nullptr);
+	progressDlg->setRange(0, 0); // infinite progress bar
+	progressDlg->show();
 	
-	m_treeiso_parameters.min_nn2 = m_treeiso_dlg->spinBoxK2->value();
-	m_treeiso_parameters.reg_strength2 = m_treeiso_dlg->doubleSpinBoxLambda2->value();
-	m_treeiso_parameters.decimate_res2 = m_treeiso_dlg->doubleSpinBoxDecRes2->value();
-	m_treeiso_parameters.max_gap = m_treeiso_dlg->doubleSpinBoxMaxGap->value();
-
-	if (!m_treeiso->intermediate_seg(m_treeiso_parameters.min_nn2, m_treeiso_parameters.reg_strength2, m_treeiso_parameters.decimate_res2, m_treeiso_parameters.max_gap, m_app, nullptr))
+	if (!TreeIso::Intermediate_seg(parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, m_app, progressDlg))
 	{
-		m_progress_dlg->hide();
+		progressDlg->hide();
 		QApplication::processEvents();
 		m_app->updateUI();
 		m_app->refreshAll();
 		return;
 	}
-	m_progress_dlg->hide();
+
+	progressDlg->hide();
 	QApplication::processEvents();
+
 	m_app->updateUI();
 	m_app->refreshAll();
-
 }
 
-
-void qTreeIso::final_segs()
+void qTreeIso::final_segs(const Parameters& parameters)
 {
-	m_progress_dlg = new QProgressDialog(m_app->getMainWindow());
-	m_treeiso->setProgressDialog(m_progress_dlg);
 	// display the progress dialog
-	m_progress_dlg->setWindowTitle("TreeIso Step 3. Final segmention");
-	m_progress_dlg->setLabelText(tr("Computing...."));
-	m_progress_dlg->setCancelButton(nullptr);
-	m_progress_dlg->setRange(0, 0); // infinite progress bar
-	m_progress_dlg->show();
+	QProgressDialog* progressDlg = new QProgressDialog(m_app->getMainWindow());
+	progressDlg->setWindowTitle("TreeIso Step 3. Final segmention");
+	progressDlg->setLabelText(tr("Computing...."));
+	progressDlg->setCancelButton(nullptr);
+	progressDlg->setRange(0, 0); // infinite progress bar
+	progressDlg->show();
 
-	m_treeiso_parameters.rel_height_length_ratio = m_treeiso_dlg->doubleSpinBoxRelHLRatio->value();
-	m_treeiso_parameters.vertical_weight = m_treeiso_dlg->doubleSpinBoxVWeight->value();
-
-	if (!m_treeiso->final_seg(m_treeiso_parameters.min_nn2, m_treeiso_parameters.rel_height_length_ratio, m_treeiso_parameters.vertical_weight, m_app, nullptr))
+	if (!TreeIso::Final_seg(parameters.min_nn2, parameters.rel_height_length_ratio, parameters.vertical_weight, m_app, progressDlg))
 	{
-		m_progress_dlg->hide();
+		progressDlg->hide();
 		QApplication::processEvents();
 		m_app->updateUI();
 		m_app->refreshAll();
 		return;
 	}
 
-	m_progress_dlg->hide();
+	progressDlg->close();
 	QApplication::processEvents();
+
 	m_app->updateUI();
 	m_app->refreshAll();
-
 }
 
 void qTreeIso::registerCommands(ccCommandLineInterface* cmd)
