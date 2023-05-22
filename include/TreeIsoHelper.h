@@ -58,6 +58,7 @@ template <typename T> void max_col(std::vector<std::vector<T>>& arr, std::vector
 template <typename T> void mean_col(std::vector<std::vector<T>>& arr, std::vector<T>&);
 template <typename T> T mean_col(std::vector<T>& arr);
 template <typename T> T median_col(std::vector<T>& arr);
+template <typename T> T mode_col(std::vector<T>& arr);
 template <typename T> void decimate_vec(std::vector<std::vector<T>>& arr, T res, std::vector<std::vector<T>>& vec_dec);
 
 template <typename T> void unique_group(std::vector<T>& arr, std::vector<std::vector<T>>& u_group, std::vector<T>& arr_unq, std::vector<T>& ui);
