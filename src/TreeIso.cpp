@@ -499,6 +499,22 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		segs_init_ids[i] = initSF->getValue(i);
 	}
 
+	CCCoreLib::ScalarField* groupSF = pc->getScalarField(groupIdx);
+	if (!groupSF)
+	{
+		assert(false);
+		return false;
+	}
+
+	groupSF->size();
+	std::vector<uint32_t> segs_group_ids;
+	segs_group_ids.resize(pointCount);
+
+	for (unsigned i = 0; i < pointCount; ++i)
+	{
+		segs_group_ids[i] = groupSF->getValue(i);
+	}
+	
 	std::vector<std::vector<uint32_t>> initVGroup;
 	std::vector<uint32_t> initU;
 	std::vector<uint32_t> initUI;
@@ -514,22 +530,13 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		Vec3d clusterCentroid;
 		mean_col(clusterPts, clusterCentroid);
 		clusterCentroids[i] = clusterCentroid;
-	}
-
-	CCCoreLib::ScalarField* groupSF = pc->getScalarField(groupIdx);
-	if (!groupSF)
-	{
-		assert(false);
-		return false;
-	}
-
-	groupSF->size();
-	std::vector<uint32_t> segs_group_ids;
-	segs_group_ids.resize(pointCount);
-
-	for (unsigned i = 0; i < pointCount; ++i)
-	{
-		segs_group_ids[i] = groupSF->getValue(i);
+		
+		std::vector<uint32_t> segs_group_id;
+		get_subset(segs_group_ids, initVGroup[i], segs_group_id);
+		float seg_group_mode = mode_col(segs_group_id);
+		for (int j = 0; j < segs_group_id.size(); ++j) {
+			segs_group_ids[initVGroup[i][j]] = seg_group_mode;
+		}
 	}
 
 	std::vector<uint32_t> cluster_ids;
@@ -1508,6 +1515,13 @@ T median_col(std::vector<T>& arr)
 	{
 		return arr[n / 2];
 	}	
+}
+
+template <typename T>
+T mode_col(std::vector<T>& arr) {
+	std::unordered_map<T, int> freq;
+	for (const auto& val : arr) freq[val]++;
+	return std::max_element(freq.begin(), freq.end(), [](const auto& a, const auto& b) { return a.second < b.second; })->first;
 }
 
 template <typename T>
