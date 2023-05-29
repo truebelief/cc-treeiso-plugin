@@ -82,9 +82,9 @@ protected:
 	//! Slot called when associated ation is triggered
 	void doAction();
 
-	void init_segs(const Parameters& parameters);
-	void intermediate_segs(const Parameters& parameters);
-	void final_segs(const Parameters& parameters);
+	void init_segs(const Parameters& parameters, QWidget* parent = nullptr);
+	void intermediate_segs(const Parameters& parameters, QWidget* parent = nullptr);
+	void final_segs(const Parameters& parameters, QWidget* parent = nullptr);
 
 protected: // members
 

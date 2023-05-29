@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Individual-tree isolator (ground LiDAR)</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="../qTreeIso.qrc">
+    <normaloff>:/CC/plugin/qTreeIso/images/forest.png</normaloff>:/CC/plugin/qTreeIso/images/forest.png</iconset>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="2,1,0">
    <item>
     <widget class="QTextEdit" name="disclaimerTextEdit_2">
