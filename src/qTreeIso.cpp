@@ -117,7 +117,7 @@ void qTreeIso::doAction()
 			parameters.reg_strength1 = treeisoDlg.doubleSpinBoxLambda1->value();;
 			parameters.decimate_res1 = treeisoDlg.doubleSpinBoxDecRes1->value();
 
-			init_segs(parameters);
+			init_segs(parameters, &treeisoDlg);
 		});
 
 	connect(treeisoDlg.pushButtonInterSeg, &QPushButton::clicked, [&]
@@ -127,7 +127,7 @@ void qTreeIso::doAction()
 			parameters.decimate_res2 = treeisoDlg.doubleSpinBoxDecRes2->value();
 			parameters.max_gap = treeisoDlg.doubleSpinBoxMaxGap->value();
 
-			intermediate_segs(parameters);
+			intermediate_segs(parameters, &treeisoDlg);
 
 		});
 
@@ -136,7 +136,7 @@ void qTreeIso::doAction()
 			parameters.rel_height_length_ratio = treeisoDlg.doubleSpinBoxRelHLRatio->value();
 			parameters.vertical_weight = treeisoDlg.doubleSpinBoxVWeight->value();
 
-			final_segs(parameters);
+			final_segs(parameters, &treeisoDlg);
 		});
 	treeisoDlg.pushButtonInitSeg->setEnabled(true);
 
@@ -154,11 +154,10 @@ void qTreeIso::doAction()
 	}
 }
 
-
-void qTreeIso::init_segs(const Parameters& parameters)
+void qTreeIso::init_segs(const Parameters& parameters, QWidget* parent/*=nullptr*/)
 {
 	// display the progress dialog
-	QProgressDialog* progressDlg = new QProgressDialog(m_app->getMainWindow());
+	QProgressDialog* progressDlg = new QProgressDialog(parent);
 	progressDlg->setWindowTitle("TreeIso Step 1. Initial segmention");
 	progressDlg->setLabelText(tr("Computing...."));
 	progressDlg->setCancelButton(nullptr);
@@ -178,10 +177,10 @@ void qTreeIso::init_segs(const Parameters& parameters)
 	m_app->refreshAll();
 }
 
-void qTreeIso::intermediate_segs(const Parameters& parameters)
+void qTreeIso::intermediate_segs(const Parameters& parameters, QWidget* parent/*=nullptr*/)
 {
 	// display the progress dialog
-	QProgressDialog* progressDlg = new QProgressDialog(m_app->getMainWindow());
+	QProgressDialog* progressDlg = new QProgressDialog(parent);
 	progressDlg->setWindowTitle("TreeIso Step 2. Interim segmention");
 	progressDlg->setLabelText(tr("Computing...."));
 	progressDlg->setCancelButton(nullptr);
@@ -204,10 +203,10 @@ void qTreeIso::intermediate_segs(const Parameters& parameters)
 	m_app->refreshAll();
 }
 
-void qTreeIso::final_segs(const Parameters& parameters)
+void qTreeIso::final_segs(const Parameters& parameters, QWidget* parent/*=nullptr*/)
 {
 	// display the progress dialog
-	QProgressDialog* progressDlg = new QProgressDialog(m_app->getMainWindow());
+	QProgressDialog* progressDlg = new QProgressDialog(parent);
 	progressDlg->setWindowTitle("TreeIso Step 3. Final segmention");
 	progressDlg->setLabelText(tr("Computing...."));
 	progressDlg->setCancelButton(nullptr);

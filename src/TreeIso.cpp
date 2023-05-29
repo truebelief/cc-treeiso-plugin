@@ -164,6 +164,7 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned min_nn1, const float
 	outSF->computeMinAndMax();
 	pc->colorsHaveChanged();
 	pc->setCurrentDisplayedScalarField(outSFIndex);
+	pc->showSF(true);
 
 	auto elapsed = Since(start).count() / 1000;
 	ccLog::Print(QString("[TreeIso] Init segs took %1 seconds").arg(elapsed));
@@ -445,6 +446,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	outSF->computeMinAndMax();
 	pc->colorsHaveChanged();
 	pc->setCurrentDisplayedScalarField(outSFIndex);
+	pc->showSF(true);
 
 	if (progressDlg)
 	{
@@ -837,6 +839,7 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		outSF->computeMinAndMax();
 		pc->colorsHaveChanged();
 		pc->setCurrentDisplayedScalarField(outSFIndex);
+		pc->showSF(true);
 
 		if (progressDlg)
 		{
