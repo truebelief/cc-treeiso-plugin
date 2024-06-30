@@ -1119,8 +1119,8 @@ void unique_group(std::vector<T>& arr, std::vector<std::vector<T>>& u_group, std
 	arr_unq.push_back(arr_sorted[0]);
 	std::size_t counter = 0;
 
-	std::vector<T>* ut = new std::vector<T>();
-	ut->push_back(arr_sorted_idx[0]);
+	std::vector<T> ut;
+	ut.push_back(arr_sorted_idx[0]);
 
 	//detect the location (before sorted) where a row in the sorted array is different from the previous row (as ia), and add one for the reverse index as ic
 	for (std::size_t i = 1; i < n; ++i)
@@ -1130,17 +1130,17 @@ void unique_group(std::vector<T>& arr, std::vector<std::vector<T>>& u_group, std
 		{
 			arr_unq.push_back(arr_sorted[i]);
 
-			u_group.push_back(*ut);
-			ut = new std::vector<T>();
-			ut->push_back(arr_sorted_idx[i]);
+			u_group.push_back(ut);
+			ut.clear();
+			ut.push_back(arr_sorted_idx[i]);
 			counter++;
 		}
 		else
 		{
-			ut->push_back(arr_sorted_idx[i]);
+			ut.push_back(arr_sorted_idx[i]);
 		}
 	}
-	u_group.push_back(*ut);
+	u_group.push_back(ut);
 }
 
 template <typename T>
