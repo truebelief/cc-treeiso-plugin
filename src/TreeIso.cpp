@@ -201,7 +201,6 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	}
 	CCCoreLib::ScalarField* initSF = pc->getScalarField(initSFIndex);
 
-	initSF->size();
 	std::vector<uint32_t> in_component;
 	try
 	{
@@ -491,7 +490,7 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 	}
 
 	CCCoreLib::ScalarField* initSF = pc->getScalarField(initIdx);
-	initSF->size();
+
 	std::vector<uint32_t> segs_init_ids;
 	segs_init_ids.resize(pointCount);
 	for (unsigned i = 0; i < pointCount; ++i)
@@ -506,7 +505,6 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		return false;
 	}
 
-	groupSF->size();
 	std::vector<uint32_t> segs_group_ids;
 	segs_group_ids.resize(pointCount);
 

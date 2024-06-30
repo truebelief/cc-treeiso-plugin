@@ -107,7 +107,7 @@ QList<QAction *> qTreeIso::getActions()
 void qTreeIso::doAction()
 {
 	Parameters parameters;
-	ccTreeIsoDlg treeisoDlg(m_app->getMainWindow());
+	ccTreeIsoDlg treeisoDlg(m_app ? m_app->getMainWindow() : nullptr);
 
 	connect(treeisoDlg.pushButtonInitSeg, &QPushButton::clicked, [&]
 		{

@@ -61,6 +61,8 @@ namespace CP
 			this->dim = 1;
 			this->nVertex = 1;
 			this->nEdge = 0;
+			this->parameter.reg_strenth = 0;
+			this->parameter.cutoff = 0;
 			this->parameter.flow_steps = 3;
 			this->parameter.kmeans_ite = 5;
 			this->parameter.kmeans_resampling = 3;

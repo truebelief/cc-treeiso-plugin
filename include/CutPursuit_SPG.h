@@ -120,7 +120,7 @@ namespace CP
 			uint32_t nb_comp = static_cast<uint32_t>(this->components.size());
 			// ind_com;
 			//#pragma omp parallel for private(ind_com) //if (nb_comp>=8) schedule(dynamic)
-			uint32_t dim_spat = spatial_part ? this->dim - 0 : dim_spat = this->dim;
+			uint32_t dim_spat = spatial_part ? this->dim - 0 : this->dim;
 
 #ifdef OPENMP
 #pragma omp parallel for if (nb_comp >= omp_get_num_threads()) schedule(dynamic) 
