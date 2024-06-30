@@ -23,6 +23,7 @@ namespace CP
 			, value(dim, 0.)
 			, color(-1)
 			, isBorder(false)
+			, in_component(0)
 		{}
 
 		T weight; //weight of the observation
