@@ -43,7 +43,7 @@ Available options
 			<p>Optional settings are:</p>
 			<ul>
 				<li> -LAMBDA1 [value]: Regularization strength for initial segmentation (default: 1.0)</li>
-				<li> -K1 [value]: Nearest neighbors to search for initial segmentation(default: 5)</li>
+				<li> -K1 [value]: Nearest neighbors to search for initial segmentation(default: 5, minimum>3)</li>
 				<li> -DECIMATE_RESOLUTION1 [value]: Decimated point resolution (in m) for initial segmentation (default: 0.05)</li>
 				<li> -LAMBDA2 [value]: Regularization strength for intermediate segmentation (default: 20)</li>
 				<li> -K2 [value]: Nearest neighbors to search for intermediate segmentation (default: 20)</li>
