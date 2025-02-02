@@ -34,7 +34,7 @@
 //#                                                                                     #
 //#######################################################################################
 
-// A Matlab version shared via:
+// Matlab and python versions shared via:
 // https://github.com/truebelief/artemis_treeiso
 
 class ccMainAppInterface;
@@ -45,11 +45,11 @@ class TreeIso
 {
 public:
 
-	static bool Init_seg(const unsigned min_nn1, const float regStrength1, const float PR_DECIMATE_RES1, ccMainAppInterface* app, QProgressDialog* progressDlg);
-	static bool Intermediate_seg(const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, ccMainAppInterface* app, QProgressDialog* progressDlg);
+	static bool Init_seg(const unsigned PR_MIN_NN1,const float PR_REG_STRENGTH1,const float PR_DECIMATE_RES1,const unsigned PR_THREADS1,ccMainAppInterface* app,QProgressDialog* progressDlg);
+	static bool Intermediate_seg(const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, const unsigned PR_THREADS2, ccMainAppInterface* app, QProgressDialog* progressDlg);
 	static bool Final_seg(const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, ccMainAppInterface* app, QProgressDialog* progressDlg);
 
-	static bool Init_seg_pcd(ccPointCloud* pc, const unsigned min_nn1, const float regStrength1, const float PR_DECIMATE_RES1, QProgressDialog* progressDlg = nullptr);
-	static bool Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, QProgressDialog* progressDlg = nullptr);
+	static bool Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const float PR_REG_STRENGTH1, const float PR_DECIMATE_RES1, const unsigned PR_THREADS1, QProgressDialog* progressDlg = nullptr);
+	static bool Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, const unsigned PR_THREADS2, QProgressDialog* progressDlg = nullptr);
 	static bool Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, QProgressDialog* progressDlg = nullptr);
 };
