@@ -32,7 +32,7 @@
 //#                                                                                     #
 //#######################################################################################
 
-// Matlab and python versions shared via:
+// A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
 #include "qTreeIso.h"
@@ -114,8 +114,7 @@ void qTreeIso::doAction()
 			parameters.min_nn1 = treeisoDlg.spinBoxK1->value();
 			parameters.reg_strength1 = treeisoDlg.doubleSpinBoxLambda1->value();;
 			parameters.decimate_res1 = treeisoDlg.doubleSpinBoxDecRes1->value();
-			parameters.threads1 = treeisoDlg.doubleSpinBoxThreads1->value();
-			
+
 			init_segs(parameters, &treeisoDlg);
 		});
 
@@ -125,7 +124,6 @@ void qTreeIso::doAction()
 			parameters.reg_strength2 = treeisoDlg.doubleSpinBoxLambda2->value();
 			parameters.decimate_res2 = treeisoDlg.doubleSpinBoxDecRes2->value();
 			parameters.max_gap = treeisoDlg.doubleSpinBoxMaxGap->value();
-			parameters.threads2 = treeisoDlg.doubleSpinBoxThreads2->value();
 
 			intermediate_segs(parameters, &treeisoDlg);
 
@@ -164,7 +162,7 @@ void qTreeIso::init_segs(const Parameters& parameters, QWidget* parent/*=nullptr
 	progressDlg->setRange(0, 0); // infinite progress bar
 	progressDlg->show();
 
-	if (!TreeIso::Init_seg(parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, parameters.threads1, m_app, progressDlg))
+	if (!TreeIso::Init_seg(parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, m_app, progressDlg))
 	{
 		m_app->dispToConsole("Not enough memory", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
 		return;
@@ -187,7 +185,7 @@ void qTreeIso::intermediate_segs(const Parameters& parameters, QWidget* parent/*
 	progressDlg->setRange(0, 0); // infinite progress bar
 	progressDlg->show();
 	
-	if (!TreeIso::Intermediate_seg(parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, parameters.threads2, m_app, progressDlg))
+	if (!TreeIso::Intermediate_seg(parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, m_app, progressDlg))
 	{
 		progressDlg->hide();
 		QApplication::processEvents();

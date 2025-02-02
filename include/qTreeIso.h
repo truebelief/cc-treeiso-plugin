@@ -34,7 +34,7 @@
 //#                                                                                     #
 //#######################################################################################
 
-// Matlab and python versions shared via:
+// A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
 #include "ccStdPluginInterface.h"
@@ -67,13 +67,11 @@ public:
 		float reg_strength1 = 1.0f; //lambda1
 		int min_nn1 = 5; //K1:key parameter
 		float decimate_res1 = 0.05f;
-		int threads1 = 1;
 
 		int reg_strength2 = 20; //lambda2:key parameter
 		int min_nn2 = 20; //K2:key parameter
 		float decimate_res2 = 0.1f;
 		float max_gap = 2.0f;
-		int threads2 = 1;
 
 		float rel_height_length_ratio = 0.5f; //rho
 		float vertical_weight = 0.5; //w:key parameter

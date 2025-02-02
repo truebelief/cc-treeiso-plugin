@@ -1,6 +1,4 @@
-﻿#pragma once
-
-//#######################################################################################
+﻿//#######################################################################################
 //#                                                                                     #
 //#                              CLOUDCOMPARE PLUGIN: qTreeIso                          #
 //#                                                                                     #
@@ -34,7 +32,9 @@
 //#                                                                                     #
 //#######################################################################################
 
-// Matlab and python versions shared via:
+
+#pragma once
+// A Matlab version shared via:
 // https://github.com/truebelief/artemis_treeiso
 
 #ifndef CC_TREEISO_DLG_HEADER
