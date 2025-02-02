@@ -34,7 +34,7 @@
 //#                                                                                     #
 //#######################################################################################
 
-// A Matlab version shared via:
+// Matlab and python versions shared via:
 // https://github.com/truebelief/artemis_treeiso
 
 //CloudCompare
@@ -221,14 +221,14 @@ struct CommandTreeIso : public ccCommandLineInterface::Command
 
 			if (try_init_seg)
 			{
-				if (!TreeIso::Init_seg_pcd(desc.pc, parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1))
+				if (!TreeIso::Init_seg_pcd(desc.pc, parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, parameters.threads1))
 				{
 					return cmd.error("Failed to finish initial segmentation due to unknown reasons.");
 				}
 			}
 			if (try_intermediate_seg)
 			{
-				if (!TreeIso::Intermediate_seg_pcd(desc.pc, parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap))
+				if (!TreeIso::Intermediate_seg_pcd(desc.pc, parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, parameters.threads2))
 				{
 					return cmd.error("Failed to finish intermediate segmentation due to unknown reasons.");
 				}
