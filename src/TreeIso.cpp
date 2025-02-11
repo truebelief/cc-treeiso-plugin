@@ -36,8 +36,8 @@
 // https://github.com/truebelief/artemis_treeiso
 
 //TreeIso
-#include "TreeIso.h"
 #include "TreeIsoHelper.hpp"
+#include "TreeIso.h"
 
 //CC
 #include <ccMainAppInterface.h>
@@ -48,6 +48,7 @@
 
 //Qt
 #include <QProgressDialog>
+#include <QMessageBox>
 #include <QCoreApplication>
 #include <QElapsedTimer>
 
@@ -110,17 +111,12 @@ struct BBox {
 };
 
 
-bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const float PR_REG_STRENGTH1, const float PR_DECIMATE_RES1, const unsigned PR_THREAD1, QProgressDialog* progressDlg/*=nullptr*/)
+bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const float PR_REG_STRENGTH1, const float PR_DECIMATE_RES1, const unsigned PR_THREAD1, std::function<void(int)> progressCallBack)
 {
 	if (!pc)
 	{
 		assert(false);
 		return false;
-	}
-
-	if (progressDlg)
-	{
-		progressDlg->setRange(0, 100);
 	}
 
 	auto start = std::chrono::steady_clock::now();     // start timer
@@ -130,11 +126,7 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 	std::vector<Vec3d> pc_vec;
 	to_translated_vector(pc, pc_vec);
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(10);
-		QCoreApplication::processEvents();
-	}
+	progressCallBack(5);
 
 	std::vector<size_t> ia, ic;
 	std::vector<Vec3d> pc_dec, pc_sub;
@@ -142,10 +134,19 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 	unique_index_by_rows(pc_dec, ia, ic);
 	get_subset(pc_vec, ia, pc_sub);
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(30);
-		QCoreApplication::processEvents();
+	if (detectGroundByQuantile(pc_sub, progressCallBack))
+	{		
+		int ret = QMessageBox::question(nullptr,
+			"Warning",
+			"Ground-level points were detected, which should be excluded for segmentation. Continue?",
+			QMessageBox::Yes | QMessageBox::No,
+			QMessageBox::No);
+		if (ret == QMessageBox::No)
+		{
+			// User chose not to continue, so exit the function (or handle as needed)
+			assert(false);
+			return false;
+		}
 	}
 
 	const unsigned K = (PR_MIN_NN1 - 1);
@@ -154,14 +155,7 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 	std::vector<uint32_t> Ev;
 	std::vector<uint32_t> in_component;
 	std::vector<std::vector<uint32_t>> components;
-
-	perform_cut_pursuit(K, 3, PR_REG_STRENGTH1, pc_sub, edgeWeight, Eu, Ev, in_component, PR_THREAD1);
-
-	if (progressDlg)
-	{
-		progressDlg->setValue(90);
-		QCoreApplication::processEvents();
-	}
+	perform_cut_pursuit(K, 3, PR_REG_STRENGTH1, pc_sub, edgeWeight, Eu, Ev, in_component, PR_THREAD1, progressCallBack);
 
 	//export segments as a new scalar field
 	int outSFIndex = pc->getScalarFieldIndexByName(InitSegsSFName);
@@ -190,27 +184,18 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 	auto elapsed = Since(start).count() / 1000;
 	ccLog::Print(QString("[TreeIso] Init segs took %1 seconds").arg(elapsed));
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(100);
-		QCoreApplication::processEvents();
-	}
+	progressCallBack(100);
 
 	return true;
 }
 
 
-bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, const unsigned PR_THREADS2, QProgressDialog* progressDlg/*=nullptr*/)
+bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, const float PR_REG_STRENGTH2, const float PR_DECIMATE_RES2, const float PR_MAX_GAP, const unsigned PR_THREADS2, std::function<void(int)> progressCallBack)
 {
 	if (!pc)
 	{
 		assert(false);
 		return false;
-	}
-
-	if (progressDlg)
-	{
-		progressDlg->setRange(0, 100);
 	}
 
 	auto start = std::chrono::steady_clock::now();
@@ -259,6 +244,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 
 	for (size_t i = 0; i < n_clusters; ++i)
 	{
+		progressCallBack(int(double(i) / n_clusters * 10));
 		std::vector<Vec3d> currentClusterPos;
 		get_subset(pc_vec, clusterVGroup[i], currentClusterPos);
 
@@ -284,21 +270,11 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 		}
 	}
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(10);
-		QCoreApplication::processEvents();
-	}
 
 	std::vector<std::vector<uint32_t>> minIdxsC;
 	std::vector<Vec3d> minIdxsD;
 	knn_cpp_nearest_neighbors(clusterCentroids, PR_MIN_NN2, minIdxsC, minIdxsD, PR_THREADS2);
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(15);
-		QCoreApplication::processEvents();
-	}
 
 	size_t n_centroids = minIdxsC.size();
 	if (n_centroids == 0)
@@ -311,6 +287,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	std::vector<knncpp::KDTreeMinkowskiX<float, knncpp::EuclideanDistance<float>>> knn_kdtrees;
 	for (size_t i = 0; i < n_centroids; ++i)
 	{
+		progressCallBack(10+int(double(i) / n_centroids * 5));
 		std::vector<Vec3d> currentClusterDec = currentClusterDecs[i];
 		Eigen::MatrixXf currentClusterDecMat(currentClusterDec[0].size(), currentClusterDec.size());
 		for (size_t k = 0; k < currentClusterDec.size(); k++)
@@ -320,16 +297,11 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 		currentClusterDecMats.push_back(currentClusterDecMat);
 	}
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(20);
-		QCoreApplication::processEvents();
-	}
-
 	std::vector<Vec3d> nnDists;
 	nnDists.resize(n_centroids, Vec3d(n_K));
 	for (size_t i = 0; i < n_centroids; ++i)
 	{
+		progressCallBack(15+int(double(i)/n_centroids*10));
 		knncpp::KDTreeMinkowskiX<float, knncpp::EuclideanDistance<float>> knn_kdtree(currentClusterDecMats[minIdxsC[i][0]]);
 		knn_cpp_build(knn_kdtree, PR_THREADS2);
 		for (size_t j = 1; j < n_K; ++j)
@@ -342,12 +314,6 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 				nnDists[i][j] = min_D;
 			}
 		}
-	}
-
-	if (progressDlg)
-	{
-		progressDlg->setValue(40);
-		QCoreApplication::processEvents();
 	}
 
 	std::vector<Vec3d> currentClusterDecsFlat;
@@ -373,13 +339,6 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 		}
 	}
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(50);
-		QCoreApplication::processEvents();
-	}
-
-
 	std::vector<std::vector<uint32_t>> minIdxs;
 	std::vector<Vec3d> Ds;
 	knn_cpp_nearest_neighbors(currentClusterDecsFlat, PR_MIN_NN2, minIdxs, Ds, PR_THREADS2);
@@ -388,16 +347,19 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	std::vector<index_t> Eu;
 	std::vector<index_t> Ev;
 
-	Eu.resize(minIdxs.size() + 1);
+		size_t nMinIdxs = minIdxs.size();
+
+	Eu.resize(nMinIdxs + 1);
 	Eu[0] = 0;
 
 	Ev.clear();
 	edgeWeight.clear();
-	Ev.reserve(minIdxs.size() * minIdxs[0].size());
-	edgeWeight.reserve(minIdxs.size() * minIdxs[0].size());
+	Ev.reserve(nMinIdxs* minIdxs[0].size());
+	edgeWeight.reserve(nMinIdxs* minIdxs[0].size());
 
-	for (size_t i = 0; i < minIdxs.size(); ++i)
+	for (size_t i = 0; i < nMinIdxs; ++i)
 	{
+		progressCallBack(25 + int(double(i) / nMinIdxs * 5));
 		size_t currentNode = currentClusterDecsFlatIndex[i];
 		Vec3d currentDists = nnDists[currentNode];
 
@@ -422,22 +384,10 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 		Eu[i + 1] = Eu[i] + static_cast<index_t>(edges_for_point);
 	}
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(55);
-		QCoreApplication::processEvents();
-	}
-
+	progressCallBack(30);
+	
 	std::vector<index_t> in_component2d;
-	perform_cut_pursuit(PR_MIN_NN2, 2, PR_REG_STRENGTH2, currentClusterDecsFlat, edgeWeight, Eu, Ev, in_component2d, 0);
-
-
-
-	if (progressDlg)
-	{
-		progressDlg->setValue(80);
-		QCoreApplication::processEvents();
-	}
+	perform_cut_pursuit(PR_MIN_NN2, 2, PR_REG_STRENGTH2, currentClusterDecsFlat, edgeWeight, Eu, Ev, in_component2d, 0, progressCallBack);
 
 	std::vector<uint32_t> currentClusterDecsICsReverse;
 	std::vector<Vec3d> currentClusterDecsReverse;
@@ -487,28 +437,19 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	pc->setCurrentDisplayedScalarField(outSFIndex);
 	pc->showSF(true);
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(100);
-		QCoreApplication::processEvents();
-	}
-
+	progressCallBack(100);
+	
 	auto elapsed = Since(start).count() / 1000;
-	ccLog::Print(QString("[TreeIso] Intermediate segs took %1 seconds").arg(elapsed));
+	ccLog::Print(QString("[TreeIso] Interim segs took %1 seconds").arg(elapsed));
 
 	return true;
 }
-bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, QProgressDialog* progressDlg/*=nullptr*/)
+bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, std::function<void(int)> progressCallBack)
 {
 	if (!pc)
 	{
 		assert(false);
 		return false;
-	}
-
-	if (progressDlg)
-	{
-		progressDlg->setRange(0, 100);
 	}
 
 	auto start = std::chrono::steady_clock::now();
@@ -559,11 +500,14 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 	std::vector<uint32_t> initUI;
 	unique_group(segs_init_ids, initVGroup, initU, initUI);
 
+	progressCallBack(10);
+
 	size_t n_init_clusters = initVGroup.size();
 	std::vector<Vec3d> clusterCentroids(n_init_clusters);
 
 	for (size_t i = 0; i < n_init_clusters; ++i)
 	{
+		progressCallBack(10+int(double(i)/n_init_clusters*15));
 		std::vector<Vec3d> clusterPts;
 		get_subset(pc_vec, initVGroup[i], clusterPts);
 		Vec3d clusterCentroid;
@@ -577,6 +521,8 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 			segs_group_ids[initVGroup[i][j]] = seg_group_mode;
 		}
 	}
+	
+	progressCallBack(30);
 
 	std::vector<uint32_t> cluster_ids;
 	get_subset(segs_group_ids, initUI, cluster_ids);
@@ -609,6 +555,9 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 			{
 				n_prev_merge_ids = static_cast<int>(n_to_merge_ids);
 			}
+			
+			progressCallBack(30 + int((double(iter)/5)*60));
+			
 			unique_group(segs_group_ids, groupVGroup, groupU);
 			size_t nGroups = groupVGroup.size();
 			centroid2DFeatures.resize(nGroups, std::vector<float>(2));
@@ -853,18 +802,12 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		outSF->setValue(i, segs_group_ids[i]);
 	}
 
-
-
 	outSF->computeMinAndMax();
 	pc->colorsHaveChanged();
 	pc->setCurrentDisplayedScalarField(outSFIndex);
 	pc->showSF(true);
 
-	if (progressDlg)
-	{
-		progressDlg->setValue(100);
-		QCoreApplication::processEvents();
-	}
+	progressCallBack(100);
 
 	auto elapsed = Since(start).count() / 1000;
 	ccLog::Print(QString("[TreeIso] Final segs took: %1 seconds !!!").arg(elapsed));
@@ -876,8 +819,7 @@ bool TreeIso::Init_seg(const unsigned PR_MIN_NN1,
 	const float PR_REG_STRENGTH1,
 	const float PR_DECIMATE_RES1,
 	const unsigned PR_THREADS1,
-	ccMainAppInterface* app,
-	QProgressDialog* progressDlg)
+	ccMainAppInterface* app, std::function<void(int)> progressCallBack)
 {
 	if (!app)
 	{
@@ -901,7 +843,7 @@ bool TreeIso::Init_seg(const unsigned PR_MIN_NN1,
 	}
 	ccPointCloud* pointCloud = static_cast<ccPointCloud*>(ent);
 
-	if (Init_seg_pcd(pointCloud, PR_MIN_NN1, PR_REG_STRENGTH1, PR_DECIMATE_RES1, PR_THREADS1, progressDlg))
+	if (Init_seg_pcd(pointCloud, PR_MIN_NN1, PR_REG_STRENGTH1, PR_DECIMATE_RES1, PR_THREADS1, progressCallBack))
 	{
 		ent->redrawDisplay();
 		return true;
@@ -913,13 +855,12 @@ bool TreeIso::Init_seg(const unsigned PR_MIN_NN1,
 }
 
 //2. Bottom-up 2D segmentation
-bool TreeIso::Intermediate_seg(	const unsigned PR_MIN_NN2,
-								const float PR_REG_STRENGTH2,
-								const float PR_DECIMATE_RES2,
-								const float PR_MAX_GAP,
-								const unsigned PR_THREADS2,
-								ccMainAppInterface* app,
-								QProgressDialog* progressDlg)
+bool TreeIso::Intermediate_seg(const unsigned PR_MIN_NN2,
+	const float PR_REG_STRENGTH2,
+	const float PR_DECIMATE_RES2,
+	const float PR_MAX_GAP,
+	const unsigned PR_THREADS2,
+	ccMainAppInterface* app, std::function<void(int)> progressCallBack)
 {
 	if (!app)
 	{
@@ -946,7 +887,7 @@ bool TreeIso::Intermediate_seg(	const unsigned PR_MIN_NN2,
 
 	ccPointCloud* pointCloud = static_cast<ccPointCloud*>(ent);
 
-	if (Intermediate_seg_pcd(pointCloud, PR_MIN_NN2, PR_REG_STRENGTH2, PR_DECIMATE_RES2, PR_MAX_GAP, PR_THREADS2, progressDlg))
+	if (Intermediate_seg_pcd(pointCloud, PR_MIN_NN2, PR_REG_STRENGTH2, PR_DECIMATE_RES2, PR_MAX_GAP, PR_THREADS2, progressCallBack))
 	{
 		ent->redrawDisplay();
 		return true;
@@ -959,10 +900,9 @@ bool TreeIso::Intermediate_seg(	const unsigned PR_MIN_NN2,
 
 //3. Global edge refinement
 bool TreeIso::Final_seg(const unsigned PR_MIN_NN3,
-						const float PR_REL_HEIGHT_LENGTH_RATIO,
-						const float PR_VERTICAL_WEIGHT,
-						ccMainAppInterface* app,
-						QProgressDialog* progressDlg)
+	const float PR_REL_HEIGHT_LENGTH_RATIO,
+	const float PR_VERTICAL_WEIGHT,
+	ccMainAppInterface* app, std::function<void(int)> progressCallBack)
 {
 	if (!app)
 	{
@@ -987,7 +927,7 @@ bool TreeIso::Final_seg(const unsigned PR_MIN_NN3,
 	}
 	ccPointCloud* pointCloud = static_cast<ccPointCloud*>(ent);
 
-	if (Final_seg_pcd(pointCloud, PR_MIN_NN3, PR_REL_HEIGHT_LENGTH_RATIO, PR_VERTICAL_WEIGHT, progressDlg))
+	if (Final_seg_pcd(pointCloud, PR_MIN_NN3, PR_REL_HEIGHT_LENGTH_RATIO, PR_VERTICAL_WEIGHT, progressCallBack))
 	{
 		ent->redrawDisplay();
 		return true;
@@ -1116,7 +1056,8 @@ bool perform_cut_pursuit(const unsigned K,
 	std::vector<index_t>& Eu,
 	std::vector<index_t>& Ev,
 	std::vector<index_t>& in_component,
-	const unsigned threads
+	const unsigned threads,
+	std::function<void(int)> progressCallBack
 ) {
 
 	using CP = Cp_d0_dist<float, index_t, comp_t>;
@@ -1128,8 +1069,11 @@ bool perform_cut_pursuit(const unsigned K,
 
 	if (Eu.size() == 0) {
 		// Build graph structure using efficient kNN
+		progressCallBack(25);
 		build_knn_graph(pc_vec, K, Eu, Ev, edge_weights, regStrength, threads);
 	}
+
+	progressCallBack(30);
 
 	const index_t E = static_cast<index_t>(Ev.size());
 
@@ -1152,7 +1096,7 @@ bool perform_cut_pursuit(const unsigned K,
 
 	comp_t rV = 1;
 	cp->set_components(rV, nullptr);
-	cp->cut_pursuit();
+	cp->cut_pursuit(true, progressCallBack);
 
 	// Get components assignment
 	const comp_t* comp_assign;
@@ -1186,3 +1130,54 @@ void load_initseg_points(const std::string& filename, std::vector<Vec3d>& points
 	}
 }
 
+
+// Function to detect ground-level points by checking the ratio of points
+// with z values below a threshold computed from the height range.
+bool detectGroundByQuantile(const std::vector<std::vector<float>>& points, std::function<void(int)> progressCallBack,
+	float groundThresholdFraction, // Use 10% of the height range
+	float ratioThreshold)          // Threshold ratio (e.g., 10% of points)
+{
+	// Extract z values from each point (assumes each point has at least 3 elements: x, y, z)
+	std::vector<float> heights;
+	heights.reserve(points.size());
+	for (const auto& pt : points)
+	{
+		if (pt.size() < 3)
+			continue;
+		heights.push_back(pt[2]);
+	}
+	if (heights.empty())
+		return false;
+
+	progressCallBack(10);
+
+	// Get the min and max using std::minmax_element (efficiently in one pass)
+	auto minmax = std::minmax_element(heights.begin(), heights.end());
+	float minVal = *minmax.first;
+	float maxVal = *minmax.second;
+
+	// Check for degenerate range (all points nearly equal)
+	if (maxVal - minVal <= std::numeric_limits<float>::epsilon())
+		return false;
+
+	progressCallBack(15);
+
+	// Compute the 10th percentile (quantile of 0.1) using std::nth_element.
+	// The nth_element algorithm rearranges the vector so that the element at the position
+	// 'qIndex' is the element that would be in that position if the vector were fully sorted.
+	size_t qIndex = static_cast<size_t>(groundThresholdFraction * heights.size());
+	std::nth_element(heights.begin(), heights.begin() + qIndex, heights.end());
+
+	progressCallBack(20);
+
+	float quantile10 = heights[qIndex];
+
+	// If the 10th quantile is very close to the minimum, it indicates many points are clustered
+	// at low heights (i.e. ground-level points). Compare the gap to the overall range.
+	if ((quantile10 - minVal) < ratioThreshold * (maxVal - minVal))
+	{
+		return true;  // Ground detected.
+	}
+
+	return false;
+}

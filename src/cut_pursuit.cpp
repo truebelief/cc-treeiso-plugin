@@ -198,7 +198,7 @@ TPL const value_t* CP::get_reduced_values() const { return rX; }
 
 TPL void CP::set_reduced_values(value_t* rX){ this->rX = rX; }
 
-TPL int CP::cut_pursuit(bool init)
+TPL int CP::cut_pursuit(bool init, std::function<void(int)> progressCallBack)
 {
 
     int it = 0;
@@ -217,6 +217,8 @@ TPL int CP::cut_pursuit(bool init)
         if (elapsed_time){ elapsed_time[it] = timer = monitor_time(start); }
         if (verbose){ print_progress(it, dif, timer); }
         if (it == it_max || dif <= dif_tol){ break; }
+
+		progressCallBack(30+int(double(it)/it_max*65.0));
 
         if (verbose){
             cout << "Cut-pursuit iteration " << it + 1 << " (max. " << it_max

@@ -25,6 +25,7 @@
 #include <cstdlib> // for size_t, malloc, exit
 #include <chrono>
 #include <limits>
+#include <functional>
 #include <iostream>
 #include "maxflow.hpp"
 
@@ -120,7 +121,7 @@ public:
     void set_reduced_values(value_t* rX);
 
     /* solve the main problem */
-    int cut_pursuit(bool init = true);
+    int cut_pursuit(bool init, std::function<void(int)> progressCallback);
 
 protected:
     /**  main graph  **/
