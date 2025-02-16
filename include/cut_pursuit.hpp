@@ -420,7 +420,7 @@ private:
         index_t*& adj_vertices_r);
 
     /* update connected components and count saturated ones */
-    void compute_connected_components();
+    bool compute_connected_components();
 
     /* allocate and compute reduced graph structure;
      * NOTA: reduced edges must guarantee 1-4), see member declaration */

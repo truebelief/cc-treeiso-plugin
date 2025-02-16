@@ -151,11 +151,15 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 
 	const unsigned K = (PR_MIN_NN1 - 1);
 	Vec3d edgeWeight;
-	std::vector<uint32_t> Eu;
-	std::vector<uint32_t> Ev;
-	std::vector<uint32_t> in_component;
-	std::vector<std::vector<uint32_t>> components;
-	perform_cut_pursuit(K, 3, PR_REG_STRENGTH1, pc_sub, edgeWeight, Eu, Ev, in_component, PR_THREAD1, progressCallBack);
+	std::vector<index_t> Eu;
+	std::vector<index_t> Ev;
+	std::vector<index_t> in_component;
+	if (!perform_cut_pursuit(K, 3, PR_REG_STRENGTH1, pc_sub, edgeWeight, Eu, Ev, in_component, PR_THREAD1, progressCallBack))
+	{
+		ccLog::Error("[TreeIso] The number of components exceeds the 65535 limit (process cancelled)!");
+		progressCallBack(0);
+		return false;
+	}
 
 	//export segments as a new scalar field
 	int outSFIndex = pc->getScalarFieldIndexByName(InitSegsSFName);
@@ -171,7 +175,6 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 	CCCoreLib::ScalarField* outSF = pc->getScalarField(outSFIndex);
 	outSF->fill(CCCoreLib::NAN_VALUE);
 
-	std::vector<uint32_t> clusterIdx(pointCount);
 	for (unsigned i = 0; i < pointCount; ++i)
 	{
 		outSF->setValue(i, (int)in_component[ic[i]]);
@@ -347,7 +350,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	std::vector<index_t> Eu;
 	std::vector<index_t> Ev;
 
-		size_t nMinIdxs = minIdxs.size();
+	size_t nMinIdxs = minIdxs.size();
 
 	Eu.resize(nMinIdxs + 1);
 	Eu[0] = 0;
@@ -385,7 +388,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	}
 
 	progressCallBack(30);
-	
+
 	std::vector<index_t> in_component2d;
 	perform_cut_pursuit(PR_MIN_NN2, 2, PR_REG_STRENGTH2, currentClusterDecsFlat, edgeWeight, Eu, Ev, in_component2d, 0, progressCallBack);
 
@@ -438,7 +441,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 	pc->showSF(true);
 
 	progressCallBack(100);
-	
+
 	auto elapsed = Since(start).count() / 1000;
 	ccLog::Print(QString("[TreeIso] Interim segs took %1 seconds").arg(elapsed));
 
@@ -522,8 +525,6 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		}
 	}
 	
-	progressCallBack(30);
-
 	std::vector<uint32_t> cluster_ids;
 	get_subset(segs_group_ids, initUI, cluster_ids);
 
@@ -531,6 +532,8 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 	std::vector<uint32_t> clusterU0;
 	unique_group(cluster_ids, clusterVGroup, clusterU0);
 
+	progressCallBack(30);
+	
 	if (clusterVGroup.size() > 1)
 	{
 		auto start = std::chrono::steady_clock::now();
@@ -549,15 +552,16 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 		Eigen::MatrixXf groupCentroidsToMerge;
 		Eigen::MatrixXf groupCentroidsRemain;
 
+		//main loop, merging clusters to existing stems iteratively based on the overall similarity score
 		while ((n_to_merge_ids != 0) && (static_cast<int>(n_to_merge_ids) != n_prev_merge_ids))
 		{
 			if (iter > 1)
 			{
 				n_prev_merge_ids = static_cast<int>(n_to_merge_ids);
 			}
-			
+
 			progressCallBack(30 + int((double(iter)/5)*60));
-			
+
 			unique_group(segs_group_ids, groupVGroup, groupU);
 			size_t nGroups = groupVGroup.size();
 			centroid2DFeatures.resize(nGroups, std::vector<float>(2));
@@ -567,6 +571,7 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 			std::vector<float> lenFeatures;
 			lenFeatures.resize(nGroups);
 
+			//calculate features per segment: 2d centroid, z, length along z
 			std::vector<BBox> groupBBoxes;
 			for (size_t i = 0; i < nGroups; ++i) {
 				std::vector<Vec3d> groupPts;
@@ -589,7 +594,7 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 			size_t knncpp_nn = (PR_MIN_NN3 < n_clusters ? PR_MIN_NN3 : n_clusters);
 			std::vector<std::vector<uint32_t>> groupNNIdxC;
 			std::vector<Vec3d> groupNNCDs;
-			knn_cpp_nearest_neighbors(centroid2DFeatures, knncpp_nn, groupNNIdxC, groupNNCDs, 1);//threads=0 means optimal
+			knn_cpp_nearest_neighbors(centroid2DFeatures, knncpp_nn, groupNNIdxC, groupNNCDs, 1);//threads=0 means optimal. No need to optimize the thread here (1 is enough).
 
 			Vec3d mds;
 			mean_col(groupNNCDs, mds);
@@ -658,17 +663,15 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 
 			knn_cpp_query(knn_kdtree, groupCentroidsToMerge, knncpp_nn2, groupNNIdx, groupNNIdxDists);
 
+			//compare the current segment features with the neighboring segments' features
 			size_t nToMergeIds = toMergeIds.size();
 			size_t nRemainIds = remainIds.size();
 			for (size_t i = 0; i < nToMergeIds; ++i)
 			{
 				size_t toMergeId = toMergeIds[i];
 
-
-
 				Eigen::MatrixXf currentClusterCentroids;
 				get_subset(clusterCentroids, clusterVGroup[toMergeId], currentClusterCentroids);
-
 
 				std::vector<float> scores;
 				std::vector<size_t> filteredRemainIds;
@@ -1096,7 +1099,12 @@ bool perform_cut_pursuit(const unsigned K,
 
 	comp_t rV = 1;
 	cp->set_components(rV, nullptr);
-	cp->cut_pursuit(true, progressCallBack);
+
+	if (cp->cut_pursuit(true, progressCallBack)<0)
+	{
+		delete cp;
+		return false;
+	}
 
 	// Get components assignment
 	const comp_t* comp_assign;
@@ -1129,7 +1137,6 @@ void load_initseg_points(const std::string& filename, std::vector<Vec3d>& points
 		in_component.push_back(s);
 	}
 }
-
 
 // Function to detect ground-level points by checking the ratio of points
 // with z values below a threshold computed from the height range.

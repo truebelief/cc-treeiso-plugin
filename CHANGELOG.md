@@ -43,3 +43,8 @@ The format is based on [this branch](https://github.com/truebelief/cc-treeiso-pl
 - Improved progress bar increment
 - Added rapid detection of ground points based on quantile distribution
 - Added warning of ground points before continuing initial segmentation
+
+## - 2025-02-16
+### Added
+- Avoided crashes by adding error handling once the maximum component limit is reached
+- Improved the speed of unique and get_subset functions
