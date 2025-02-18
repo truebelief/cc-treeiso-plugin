@@ -25,6 +25,7 @@
 #include <cstdlib> // for size_t, malloc, exit
 #include <chrono>
 #include <limits>
+#include <functional>
 #include <iostream>
 #include "maxflow.hpp"
 
@@ -120,7 +121,7 @@ public:
     void set_reduced_values(value_t* rX);
 
     /* solve the main problem */
-    int cut_pursuit(bool init = true);
+    int cut_pursuit(bool init, std::function<void(int)> progressCallback);
 
 protected:
     /**  main graph  **/
@@ -419,7 +420,8 @@ private:
         index_t*& adj_vertices_r);
 
     /* update connected components and count saturated ones */
-    void compute_connected_components();
+    bool compute_connected_components();
+
 
     /* allocate and compute reduced graph structure;
      * NOTA: reduced edges must guarantee 1-4), see member declaration */

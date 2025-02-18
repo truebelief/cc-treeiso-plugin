@@ -46,6 +46,12 @@
 
 //STL
 #include <vector>
+#include <functional>
+#include <cstddef>
+#include <unordered_map>
+
+using namespace std;
+
 
 class ccPointCloud;
 typedef std::vector<float> Vec3d;
@@ -60,9 +66,11 @@ float knn_cpp_query_min_d(knncpp::KDTreeMinkowskiX<float, knncpp::EuclideanDista
 void build_knn_graph(const std::vector<Vec3d>& points, size_t k, std::vector<index_t>& first_edge, std::vector<index_t>& adj_vertices, std::vector<float>& edge_weights, float regStrength1 = 1.0, unsigned n_thread = 8);
 void knn_cpp_nearest_neighbors(const std::vector<Vec3d>& dataset, size_t k, std::vector<std::vector<uint32_t>>& res_idx, std::vector<Vec3d>& res_dists, unsigned n_thread);
 
+bool detectGroundByQuantile(const std::vector<std::vector<float>>& points, std::function<void(int)> progressCallBack, float groundThresholdFraction = 0.1f, float ratioThreshold = 0.1f);
 
 void load_initseg_points(const std::string& filename, std::vector<Vec3d>& points, std::vector<index_t>& in_component);
-bool perform_cut_pursuit(const unsigned K, size_t D, const float regStrength, const std::vector<Vec3d>& pc_vec, std::vector<float>& edge_weights, std::vector<index_t>& Eu, std::vector<index_t>& Ev, std::vector<index_t>& in_component, const unsigned threads);
+bool perform_cut_pursuit(const unsigned K, size_t D, const float regStrength, const std::vector<Vec3d>& pc_vec, std::vector<float>& edge_weights, std::vector<index_t>& Eu, std::vector<index_t>& Ev, std::vector<index_t>& in_component, const unsigned threads, std::function<void(int)> progressCallback);
+
 
 template <typename T>
 size_t arg_min_col(const std::vector<T>& arr) {
@@ -226,33 +234,40 @@ void sort_indexes(const std::vector<ValueType>& v, std::vector<IndexType>& idx,
 		[&v](IndexType i) { return v[i]; });
 }
 
+
+template <typename T>
+struct VectorHash {
+	std::size_t operator()(const std::vector<T>& vec) const {
+		std::size_t seed = vec.size();
+		for (const auto& elem : vec) {
+			seed ^= std::hash<T>{}(elem)+0x9e3779b97f4a7c15ULL + (seed << 6) + (seed >> 2);
+		}
+		return seed;
+	}
+};
 template <typename T>
 void unique_index_by_rows(const std::vector<std::vector<T>>& arr,
-	std::vector<size_t>& ia, std::vector<size_t>& ic) {
-	if (arr.empty()) {
-		ia.clear();
-		ic.clear();
-		return;
-	}
+	std::vector<size_t>& ia,
+	std::vector<size_t>& ic) {
 
-	std::vector<std::vector<T>> arr_sorted;
-	std::vector<size_t> sort_idx;
-	sort_indexes_by_row(arr, sort_idx, arr_sorted);
-
-	const size_t rows = arr_sorted.size();
-	ic.resize(rows);
 	ia.clear();
-	ia.push_back(sort_idx[0]);
-	ic[sort_idx[0]] = 0;
+	ic.resize(arr.size());
+	// Map each unique row to its unique group index.
+	std::unordered_map<std::vector<T>, size_t, VectorHash<T>> row_to_group;
 
-	size_t counter = 0;
-	for (size_t i = 1; i < rows; ++i) {
-		if (!std::equal(arr_sorted[i].begin(), arr_sorted[i].end(),
-			arr_sorted[i - 1].begin())) {
-			ia.push_back(sort_idx[i]);
-			++counter;
+	size_t unique_counter = 0;
+	for (size_t i = 0; i < arr.size(); ++i) {
+		auto it = row_to_group.find(arr[i]);
+		if (it == row_to_group.end()) {
+			// First occurrence of this unique row.
+			row_to_group[arr[i]] = unique_counter;
+			ia.push_back(i);
+			ic[i] = unique_counter;
+			++unique_counter;
 		}
-		ic[sort_idx[i]] = counter;
+		else {
+			ic[i] = it->second;
+		}
 	}
 }
 
@@ -333,14 +348,11 @@ void unique_group(const std::vector<T>& arr, std::vector<std::vector<T>>& u_grou
 	unique_group(arr, u_group, arr_unq, ui);
 }
 
-
 template <typename T1, typename T2>
-void get_subset(std::vector<T1>& arr, std::vector<T2>& indices, std::vector<T1>& arr_sub)
-{
-	arr_sub.clear();
-	for (const auto& idx : indices)
-	{
-		arr_sub.push_back(arr[idx]);
+void get_subset(const std::vector<T1>& arr,const std::vector<T2>& indices,std::vector<T1>& arr_sub) {
+	arr_sub.resize(indices.size());
+	for (size_t i = 0; i < indices.size(); ++i) {
+		arr_sub[i] = arr[indices[i]];
 	}
 }
 

@@ -221,21 +221,21 @@ struct CommandTreeIso : public ccCommandLineInterface::Command
 
 			if (try_init_seg)
 			{
-				if (!TreeIso::Init_seg_pcd(desc.pc, parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, parameters.threads1))
+				if (!TreeIso::Init_seg_pcd(desc.pc, parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, parameters.threads1, [](int) {/*No implementation for progress bar*/}))
 				{
 					return cmd.error("Failed to finish initial segmentation due to unknown reasons.");
 				}
 			}
 			if (try_intermediate_seg)
 			{
-				if (!TreeIso::Intermediate_seg_pcd(desc.pc, parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, parameters.threads2))
+				if (!TreeIso::Intermediate_seg_pcd(desc.pc, parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, parameters.threads2, [](int) {/*No implementation for progress bar*/}))
 				{
 					return cmd.error("Failed to finish intermediate segmentation due to unknown reasons.");
 				}
 			}
 			if (try_final_seg)
 			{
-				if (!TreeIso::Final_seg_pcd(desc.pc, parameters.min_nn2, parameters.rel_height_length_ratio, parameters.vertical_weight))
+				if (!TreeIso::Final_seg_pcd(desc.pc, parameters.min_nn2, parameters.rel_height_length_ratio, parameters.vertical_weight, [](int) {/*No implementation for progress bar*/}))
 				{
 					return cmd.error("Failed to finish final segmentation due to unknown reasons.");
 				}

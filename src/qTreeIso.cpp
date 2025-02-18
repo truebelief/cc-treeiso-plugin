@@ -158,15 +158,25 @@ void qTreeIso::init_segs(const Parameters& parameters, QWidget* parent/*=nullptr
 {
 	// display the progress dialog
 	QProgressDialog* progressDlg = new QProgressDialog(parent);
-	progressDlg->setWindowTitle("TreeIso Step 1. Initial segmention");
+	progressDlg->setWindowTitle("TreeIso Step 1. Initial segmentation");
 	progressDlg->setLabelText(tr("Computing...."));
 	progressDlg->setCancelButton(nullptr);
-	progressDlg->setRange(0, 0); // infinite progress bar
+	progressDlg->setRange(0, 100); // infinite progress bar
 	progressDlg->show();
+	
+	std::function<void(int)> progressCallback = [progressDlg](int percent) {
+		progressDlg->setValue(percent);
+		QApplication::processEvents(); // Allow UI updates
+	};
 
-	if (!TreeIso::Init_seg(parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, parameters.threads1, m_app, progressDlg))
+	if (!TreeIso::Init_seg(parameters.min_nn1, parameters.reg_strength1, parameters.decimate_res1, parameters.threads1, m_app, progressCallback))
 	{
-		m_app->dispToConsole("Not enough memory", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
+		progressCallback(0);
+		m_app->dispToConsole("Discontinued in initial segmentation.", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
+		progressDlg->close();
+		QApplication::processEvents();
+		m_app->updateUI();
+		m_app->refreshAll();
 		return;
 	}
 
@@ -181,15 +191,22 @@ void qTreeIso::intermediate_segs(const Parameters& parameters, QWidget* parent/*
 {
 	// display the progress dialog
 	QProgressDialog* progressDlg = new QProgressDialog(parent);
-	progressDlg->setWindowTitle("TreeIso Step 2. Interim segmention");
+	progressDlg->setWindowTitle("TreeIso Step 2. Interim segmentation");
 	progressDlg->setLabelText(tr("Computing...."));
 	progressDlg->setCancelButton(nullptr);
-	progressDlg->setRange(0, 0); // infinite progress bar
+	progressDlg->setRange(0, 100); // infinite progress bar
 	progressDlg->show();
 	
-	if (!TreeIso::Intermediate_seg(parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, parameters.threads2, m_app, progressDlg))
+	std::function<void(int)> progressCallback = [progressDlg](int percent) {
+		progressDlg->setValue(percent);
+		QApplication::processEvents(); // Allow UI updates
+	};
+	
+	if (!TreeIso::Intermediate_seg(parameters.min_nn2, parameters.reg_strength2, parameters.decimate_res2, parameters.max_gap, parameters.threads2, m_app, progressCallback))
 	{
-		progressDlg->hide();
+		progressCallback(0);
+		m_app->dispToConsole("Error in interim segmentation!", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
+		progressDlg->close();
 		QApplication::processEvents();
 		m_app->updateUI();
 		m_app->refreshAll();
@@ -207,15 +224,22 @@ void qTreeIso::final_segs(const Parameters& parameters, QWidget* parent/*=nullpt
 {
 	// display the progress dialog
 	QProgressDialog* progressDlg = new QProgressDialog(parent);
-	progressDlg->setWindowTitle("TreeIso Step 3. Final segmention");
+	progressDlg->setWindowTitle("TreeIso Step 3. Final segmentation");
 	progressDlg->setLabelText(tr("Computing...."));
 	progressDlg->setCancelButton(nullptr);
-	progressDlg->setRange(0, 0); // infinite progress bar
+	progressDlg->setRange(0, 100); // infinite progress bar
 	progressDlg->show();
+	
+	std::function<void(int)> progressCallback = [progressDlg](int percent) {
+		progressDlg->setValue(percent);
+		QApplication::processEvents(); // Allow UI updates
+	};
 
-	if (!TreeIso::Final_seg(parameters.min_nn2, parameters.rel_height_length_ratio, parameters.vertical_weight, m_app, progressDlg))
+	if (!TreeIso::Final_seg(parameters.min_nn2, parameters.rel_height_length_ratio, parameters.vertical_weight, m_app, progressCallback))
 	{
-		progressDlg->hide();
+		progressCallback(0);
+		m_app->dispToConsole("Error in final segmentation!", ccMainAppInterface::ERR_CONSOLE_MESSAGE);
+		progressDlg->close();
 		QApplication::processEvents();
 		m_app->updateUI();
 		m_app->refreshAll();

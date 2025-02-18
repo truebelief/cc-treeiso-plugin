@@ -33,3 +33,20 @@ The format is based on [this branch](https://github.com/truebelief/cc-treeiso-pl
 - Fixed an issue with the nearest neighbor search caused by an incorrect 2D array order in knn_cpp.
 - Enabled thread count customization for knn-cpp (minor speed boost).
 - Optimized array calculations with improved use of STL algorithms.
+
+## - 2025-02-10
+### Tested
+- Tested on several TLS plots
+
+## - 2025-02-11
+### Added
+- Improved progress bar increment
+- Added rapid detection of ground points based on quantile distribution
+- Added warning of ground points before continuing initial segmentation
+
+## - 2025-02-16
+### Added
+- Avoided crashes by adding error handling once the maximum component limit is reached
+- Improved the speed of unique and get_subset functions
+=======
+\

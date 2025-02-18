@@ -28,7 +28,7 @@
     typename value_t>
 #define CP Cp<real_t, index_t, comp_t, value_t>
 
-using namespace std; 
+using namespace std;
 
 TPL CP::Cp(index_t V, index_t E, const index_t* first_edge,
     const index_t* adj_vertices, size_t D)
@@ -68,9 +68,6 @@ TPL CP::Cp(index_t V, index_t E, const index_t* first_edge,
     split_values_init_num = 1;
     split_values_iter_num = 1;
 
-    //max_num_threads = omp_get_max_threads();
-    //balance_parallel_split = max_num_threads > 1 &&
-    //    compute_num_threads(maxflow_complexity()) > 1;
     max_split_size = V;
 }
 
@@ -161,16 +158,6 @@ TPL void CP::set_split_param(index_t max_split_size, comp_t K,
     this->split_values_iter_num = split_values_iter_num;
 }
 
-//TPL void CP::set_parallel_param(int max_num_threads,
-//    bool balance_parallel_split)
-//{
-//    if (max_num_threads <= 0){ max_num_threads = omp_get_max_threads(); }
-//    this->max_num_threads = max_num_threads;
-//    this->balance_parallel_split = balance_parallel_split
-//        && max_num_threads > 1
-//        && compute_num_threads(split_complexity()) > 1;
-//}
-
 TPL comp_t CP::get_components(const comp_t** comp_assign,
     const index_t** first_vertex, const index_t** comp_list) const
 {
@@ -198,7 +185,7 @@ TPL const value_t* CP::get_reduced_values() const { return rX; }
 
 TPL void CP::set_reduced_values(value_t* rX){ this->rX = rX; }
 
-TPL int CP::cut_pursuit(bool init)
+TPL int CP::cut_pursuit(bool init, std::function<void(int)> progressCallBack)
 {
 
     int it = 0;
@@ -217,6 +204,8 @@ TPL int CP::cut_pursuit(bool init)
         if (elapsed_time){ elapsed_time[it] = timer = monitor_time(start); }
         if (verbose){ print_progress(it, dif, timer); }
         if (it == it_max || dif <= dif_tol){ break; }
+
+		    progressCallBack(30+int(double(it)/it_max*65.0));
 
         if (verbose){
             cout << "Cut-pursuit iteration " << it + 1 << " (max. " << it_max
@@ -261,7 +250,15 @@ TPL int CP::cut_pursuit(bool init)
         free(rX); rX = nullptr;
 
         if (verbose){ cout << "\tCompute connected components... " << flush; }
-        compute_connected_components();
+        if (!compute_connected_components()) {
+          if (verbose) {
+            cout << "Error: connected components exceeds the maximum value (65535). Return" << endl;
+          }
+          free(last_comp_assign); last_comp_assign = nullptr;
+          free(reduced_edges); reduced_edges = nullptr;
+          free(reduced_edge_weights); reduced_edge_weights = nullptr;
+          return -1;
+        }
         if (verbose){
             cout << rV << " connected component(s), " << saturated_comp <<
                 " saturated." << endl;
@@ -407,7 +404,7 @@ TPL void CP::get_bind_reverse_edges(comp_t rv, index_t*& first_edge_r,
     first_edge_r[0] = 0;
 }
 
-TPL void CP::compute_connected_components()
+TPL bool CP::compute_connected_components()
 {
     /**  new connected components hierarchically derives from previous ones,
      **  we can thus compute them in parallel along previous components  **/
@@ -504,7 +501,8 @@ TPL void CP::compute_connected_components()
         cerr << "Cut-pursuit: number of components (" << tmp_rV << ") greater "
             "than can be represented by comp_t (" << MAX_NUM_COMP << ")"
             << endl;
-        exit(EXIT_FAILURE);
+        //exit(EXIT_FAILURE);
+		return false;
     }
 
     /**  update components lists, assignments and saturation  **/
@@ -525,6 +523,7 @@ TPL void CP::compute_connected_components()
         comp_assign[v] = rv;
     }
     first_vertex[rV] = V;
+	return true;
 }
 
 TPL void CP::compute_reduced_graph()
