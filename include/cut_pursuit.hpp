@@ -422,6 +422,7 @@ private:
     /* update connected components and count saturated ones */
     bool compute_connected_components();
 
+
     /* allocate and compute reduced graph structure;
      * NOTA: reduced edges must guarantee 1-4), see member declaration */
     void compute_reduced_graph();

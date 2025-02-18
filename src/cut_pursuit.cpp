@@ -205,7 +205,7 @@ TPL int CP::cut_pursuit(bool init, std::function<void(int)> progressCallBack)
         if (verbose){ print_progress(it, dif, timer); }
         if (it == it_max || dif <= dif_tol){ break; }
 
-		progressCallBack(30+int(double(it)/it_max*65.0));
+		    progressCallBack(30+int(double(it)/it_max*65.0));
 
         if (verbose){
             cout << "Cut-pursuit iteration " << it + 1 << " (max. " << it_max
@@ -250,15 +250,15 @@ TPL int CP::cut_pursuit(bool init, std::function<void(int)> progressCallBack)
         free(rX); rX = nullptr;
 
         if (verbose){ cout << "\tCompute connected components... " << flush; }
-		if (!compute_connected_components()) {
-			if (verbose) {
-				cout << "Error: connected components exceeds the maximum value (65535). Return" << endl;
-			}
-			free(last_comp_assign); last_comp_assign = nullptr;
-			free(reduced_edges); reduced_edges = nullptr;
-			free(reduced_edge_weights); reduced_edge_weights = nullptr;
-			return -1;
-		}
+        if (!compute_connected_components()) {
+          if (verbose) {
+            cout << "Error: connected components exceeds the maximum value (65535). Return" << endl;
+          }
+          free(last_comp_assign); last_comp_assign = nullptr;
+          free(reduced_edges); reduced_edges = nullptr;
+          free(reduced_edge_weights); reduced_edge_weights = nullptr;
+          return -1;
+        }
         if (verbose){
             cout << rV << " connected component(s), " << saturated_comp <<
                 " saturated." << endl;

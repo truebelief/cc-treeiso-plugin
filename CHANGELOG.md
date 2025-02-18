@@ -48,3 +48,5 @@ The format is based on [this branch](https://github.com/truebelief/cc-treeiso-pl
 ### Added
 - Avoided crashes by adding error handling once the maximum component limit is reached
 - Improved the speed of unique and get_subset functions
+=======
+\

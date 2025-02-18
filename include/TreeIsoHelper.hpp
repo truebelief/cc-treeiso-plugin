@@ -52,6 +52,7 @@
 
 using namespace std;
 
+
 class ccPointCloud;
 typedef std::vector<float> Vec3d;
 
@@ -64,10 +65,12 @@ void knn_cpp_query(knncpp::KDTreeMinkowskiX<float, knncpp::EuclideanDistance<flo
 float knn_cpp_query_min_d(knncpp::KDTreeMinkowskiX<float, knncpp::EuclideanDistance<float>>& kdtree, Eigen::MatrixXf& query_points, size_t k);
 void build_knn_graph(const std::vector<Vec3d>& points, size_t k, std::vector<index_t>& first_edge, std::vector<index_t>& adj_vertices, std::vector<float>& edge_weights, float regStrength1 = 1.0, unsigned n_thread = 8);
 void knn_cpp_nearest_neighbors(const std::vector<Vec3d>& dataset, size_t k, std::vector<std::vector<uint32_t>>& res_idx, std::vector<Vec3d>& res_dists, unsigned n_thread);
+
 bool detectGroundByQuantile(const std::vector<std::vector<float>>& points, std::function<void(int)> progressCallBack, float groundThresholdFraction = 0.1f, float ratioThreshold = 0.1f);
 
 void load_initseg_points(const std::string& filename, std::vector<Vec3d>& points, std::vector<index_t>& in_component);
 bool perform_cut_pursuit(const unsigned K, size_t D, const float regStrength, const std::vector<Vec3d>& pc_vec, std::vector<float>& edge_weights, std::vector<index_t>& Eu, std::vector<index_t>& Ev, std::vector<index_t>& in_component, const unsigned threads, std::function<void(int)> progressCallback);
+
 
 template <typename T>
 size_t arg_min_col(const std::vector<T>& arr) {
@@ -246,11 +249,6 @@ template <typename T>
 void unique_index_by_rows(const std::vector<std::vector<T>>& arr,
 	std::vector<size_t>& ia,
 	std::vector<size_t>& ic) {
-	if (arr.empty()) {
-		ia.clear();
-		ic.clear();
-		return;
-	}
 
 	ia.clear();
 	ic.resize(arr.size());

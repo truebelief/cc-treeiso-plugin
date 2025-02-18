@@ -151,6 +151,7 @@ bool TreeIso::Init_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN1, const fl
 
 	const unsigned K = (PR_MIN_NN1 - 1);
 	Vec3d edgeWeight;
+
 	std::vector<index_t> Eu;
 	std::vector<index_t> Ev;
 	std::vector<index_t> in_component;
@@ -447,6 +448,7 @@ bool TreeIso::Intermediate_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN2, 
 
 	return true;
 }
+
 bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const float PR_REL_HEIGHT_LENGTH_RATIO, const float PR_VERTICAL_WEIGHT, std::function<void(int)> progressCallBack)
 {
 	if (!pc)
@@ -594,6 +596,7 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 			size_t knncpp_nn = (PR_MIN_NN3 < n_clusters ? PR_MIN_NN3 : n_clusters);
 			std::vector<std::vector<uint32_t>> groupNNIdxC;
 			std::vector<Vec3d> groupNNCDs;
+
 			knn_cpp_nearest_neighbors(centroid2DFeatures, knncpp_nn, groupNNIdxC, groupNNCDs, 1);//threads=0 means optimal. No need to optimize the thread here (1 is enough).
 
 			Vec3d mds;
@@ -799,7 +802,6 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 	CCCoreLib::ScalarField* outSF = pc->getScalarField(outSFIndex);
 	outSF->fill(CCCoreLib::NAN_VALUE);
 
-
 	for (unsigned i = 0; i < pointCount; ++i)
 	{
 		outSF->setValue(i, segs_group_ids[i]);
@@ -811,7 +813,7 @@ bool TreeIso::Final_seg_pcd(ccPointCloud* pc, const unsigned PR_MIN_NN3, const f
 	pc->showSF(true);
 
 	progressCallBack(100);
-
+  
 	auto elapsed = Since(start).count() / 1000;
 	ccLog::Print(QString("[TreeIso] Final segs took: %1 seconds !!!").arg(elapsed));
 	return true;
