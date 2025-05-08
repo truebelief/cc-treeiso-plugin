@@ -1096,7 +1096,7 @@ bool perform_cut_pursuit(const unsigned K,
 	// Rest of the implementation stays the same
 	cp->set_edge_weights(edge_weights.data(), regStrength);
 	cp->set_loss(cp->quadratic_loss());
-	cp->set_cp_param(1e-4, 20, 1000);
+	cp->set_cp_param(1e-4f, 20, 1000);
 	//cp->set_min_comp_weight(10.0);//optional
 
 	comp_t rV = 1;

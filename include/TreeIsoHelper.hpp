@@ -278,11 +278,11 @@ void to_translated_vector(const ccPointCloud* pc, std::vector<std::vector<T>>& y
 		return;
 	}
 
-	const size_t pointCount = pc->size();
+	const unsigned pointCount = pc->size();
 	y.resize(pointCount, std::vector<T>(3));
 
 	std::vector<T> y_mean(3, 0);
-	for (size_t i = 0; i < pointCount; ++i) {
+	for (unsigned i = 0; i < pointCount; ++i) {
 		const CCVector3* pv = pc->getPoint(i);
 		y[i] = { static_cast<T>(pv->x), static_cast<T>(pv->y), static_cast<T>(pv->z) };
 		std::transform(y_mean.begin(), y_mean.end(), y[i].begin(), y_mean.begin(), std::plus<T>());
