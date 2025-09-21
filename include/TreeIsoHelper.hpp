@@ -41,12 +41,16 @@
 #include "knncpp.h"
 #include "cp_d0_dist.hpp"
 
+//qCC_db
+#include <ccPointCloud.h>
+
 //Eigen
 #include <Eigen/Dense>
 
 //STL
 #include <vector>
 #include <functional>
+#include <numeric>
 #include <cstddef>
 #include <unordered_map>
 
