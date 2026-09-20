@@ -56,8 +56,64 @@ Available options
 	</tr>
 </table>
 
+<!-- demo -->
 ![treeiso_demo](https://user-images.githubusercontent.com/8785889/236364374-5d9f69e0-0877-43b3-9927-f923d65262c1.gif)
+<!-- demo -->
 
+## 3rd Party Installation
+
+### [CloudCompare]
+
+You can check out the official build instructions here:
+[CloudCompare Build Instructions]
+
+In the CMake, please enable the PLUGIN_STANDARD_QTREEISO option, and you can find the treeiso added to CC after build.
+
+`CMake` Edits:
+```diff
+# Windows
+mkdir build & cd build
+- cmake -DCMAKE_PREFIX_PATH=C:\Qt\5.15.2\msvc2019_64 ..
++ cmake -DCMAKE_PREFIX_PATH=C:\Qt\5.15.2\msvc2019_64 -PLUGIN_STANDARD_QTREEISO ..
+
+# macOs
+mkdir build && cd build
+- cmake -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5 ..
++ cmake -DCMAKE_PREFIX_PATH=/usr/local/opt/qt@5 -PLUGIN_STANDARD_QTREEISO ..
+
+# Linux
+mkdir build && cd build
+cmake ..
+```
+
+We also have standalone Python and MATLAB versions, but they don’t interact with CloudCompare.
+
+#### Mac OS (Apple Silicon)
+
+The newer **Treeiso** plugin fixes a few minor bugs and is up to 15× faster, but produces similar results as the older one. 
+
+If you’re on a Mac with CC (~2.13.2), you can continue using that version without big issues.
+
+If you are compiling and running locally, add -DCC_MAC_DEV_PATHS to the CMAKE_CXX_FLAGS in the CMAKE group. 
+This will look for the plugins in your build directory rather than the application bundle. If you need the shaders as well,
+you will have to create a shaders folder in the build directory and copy the shaders you need into it.
+
+For convenience, we provide a 100% self contained build system based on [pixi]:
+1. Install pixi from the official website and in the root directory of CC code repository
+2. Launch `pixi run build` and then `pixi run CloudCompare`.
+3. OPTIONAL: You can also create a portable (relocatable) `.app` by using `pixi run bundle`. You should find the bundle in `.build/install/CloudCompare` directory.
+4. OPTIONAL: I haven’t tested this myself, but it might work. Let me know if you give it a try --> Edit the `pixi.toml`, enabling the **TreeISO** plugin by setting `-DPLUGIN_STANDARD_QTREEISO=ON`.
+
+##### Issues
+
+If you run into any issues compiling on macOS, I recommend contacting the CloudCompare founder [@dgirardeau] via [CloudCompare Issues], who knows everything about the releases and cross-platform details. I also hope a recent pre-built mac version can be available, but currently the new plugin is only in the Windows alpha release (2.14.alpha, dated 02/18/2025).
+
+<!-- refs -->
+[@dgirardeau]: https://github.com/dgirardeau
+[CloudCompare]: https://www.danielgm.net/cc/
+[CloudCompare Issues]: https://github.com/CloudCompare/CloudCompare/issues
+[CloudCompare Build Instructions]: https://github.com/CloudCompare/CloudCompare/blob/master/BUILD.md
+[pixi]: https://pixi.sh/latest/
 
 
 
